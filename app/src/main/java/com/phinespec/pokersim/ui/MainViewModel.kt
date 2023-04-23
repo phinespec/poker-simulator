@@ -1,17 +1,14 @@
 package com.phinespec.pokersim.ui
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.playerNames
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
+import timber.log.Timber
 
 
 class MainViewModel : ViewModel() {
@@ -41,7 +38,7 @@ class MainViewModel : ViewModel() {
                 Player(
                     id = i,
                     name = getRandomName(),
-                    holeCards = getRandomHoleCards()
+                    holeCards = getHoleCards()
                 )
             )
         }
@@ -52,23 +49,26 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun drawCommunityCards() {
+        var cardsToAdd = mutableListOf<Card>()
+
+        repeat(5) {
+            val topCard = mainDeck.removeFirst()
+            cardsToAdd.add(topCard)
+        }
+        _uiState.value = _uiState.value.copy(communityCards = cardsToAdd)
+    }
+
     private fun getRandomName(): String = playerNames.random()
 
-    private fun addNewPlayer() {
-
-    }
-
-    private fun drawHoleCards(playerCount: Int)  {
-
-    }
-
-    private fun getRandomHoleCards(): Pair<Card, Card> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
+    private fun getHoleCards(): Pair<Card, Card> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
 
     fun resetGame() {
         mainDeck.clear()
         _uiState.value = GameUiState()
         buildDeck()
         createStartingPlayers()
+        drawCommunityCards()
     }
 
     companion object {
