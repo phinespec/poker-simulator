@@ -1,17 +1,27 @@
 package com.phinespec.pokersim.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.phinespec.pokersim.data.repository.PokerSimRepository
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.playerNames
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import javax.inject.Inject
 
 
-class MainViewModel : ViewModel() {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val repository: PokerSimRepository
+) : ViewModel() {
 
     private var mainDeck = mutableListOf<Card>()
 
@@ -21,6 +31,18 @@ class MainViewModel : ViewModel() {
 
     init {
         resetGame()
+    }
+
+    suspend fun getHandStrength(cc: String, pc: String): String {
+        val result = repository.getHandResults(cc, pc)
+        return if (result.isSuccessful) {
+            val data = result.body()!!
+            Timber.d("response => $data")
+            data.winners.first().result
+        } else {
+            Timber.e("An error occured: ${result.errorBody().toString()}")
+            "404 Error"
+        }
     }
 
     // build deck and shuffle all cards before dealing
@@ -49,14 +71,65 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun drawCommunityCards() {
+    fun drawFlop() {
         var cardsToAdd = mutableListOf<Card>()
 
-        repeat(5) {
+        repeat(3) { count ->
             val topCard = mainDeck.removeFirst()
             cardsToAdd.add(topCard)
         }
-        _uiState.value = _uiState.value.copy(communityCards = cardsToAdd)
+
+        _uiState.value = _uiState.value.copy(
+            communityCards = cardsToAdd,
+            drawCardButtonLabel = "Draw Turn"
+        )
+    }
+
+    fun drawTurn() {
+
+        var cardsToAdd = uiState.value.communityCards
+
+        if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
+            cardsToAdd.add(mainDeck.removeFirst())
+
+            _uiState.value = _uiState.value.copy(
+                communityCards = cardsToAdd,
+                drawCardButtonLabel = "Draw River"
+            )
+        }
+    }
+
+    fun drawRiver() {
+        var cc = ""
+        var pc = ""
+
+        val playerCards = _uiState.value.players.first().holeCards
+        pc += playerCards.first.cardString.uppercase()
+        pc += ","
+        pc += playerCards.second.cardString.uppercase()
+
+        var cardsToAdd = uiState.value.communityCards
+
+        if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
+            cardsToAdd.add(mainDeck.removeFirst())
+
+            cardsToAdd.forEach { card ->
+                val cardString = card.cardString
+                cc += "$cardString,".uppercase()
+            }
+
+            viewModelScope.launch {
+                val handStrength = getHandStrength(cc, pc)
+
+                withContext(Dispatchers.Main) {
+                    _uiState.value = _uiState.value.copy(
+                        communityCards = cardsToAdd,
+                        drawCardButtonLabel = "New Hand",
+                        handStrength = handStrength
+                    )
+                }
+            }
+        }
     }
 
     private fun getRandomName(): String = playerNames.random()
@@ -68,11 +141,12 @@ class MainViewModel : ViewModel() {
         _uiState.value = GameUiState()
         buildDeck()
         createStartingPlayers()
-        drawCommunityCards()
+//        drawCommunityCards()
     }
 
     companion object {
         private val MAX_PLAYER_COUNT = 6
         private val STARTING_PLAYER_COUNT = 1
+        private val MAX_COMMUNITY_COUNT = 5
     }
 }

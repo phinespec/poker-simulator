@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,14 +21,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.ui.GameUiState
@@ -43,7 +40,7 @@ import com.phinespec.pokersim.ui.theme.LightFeltBlue
 @Composable
 fun MainGameScreen(
     modifier: Modifier = Modifier,
-    viewModel: MainViewModel = viewModel()
+    viewModel: MainViewModel = hiltViewModel()
 ) {
 
     val gameUiState by viewModel.uiState.collectAsState()
@@ -51,7 +48,14 @@ fun MainGameScreen(
     GameLayout(
         uiState = gameUiState,
         onClickReset = { viewModel.resetGame() },
-        onClickDraw = { viewModel.drawCommunityCards() }
+        onClickDraw = {
+            when (viewModel.uiState.value.drawCardButtonLabel) {
+                "Draw Flop" -> { viewModel.drawFlop() }
+                "Draw Turn" -> { viewModel.drawTurn() }
+                "Draw River" -> { viewModel.drawRiver() }
+                else -> { viewModel.resetGame() }
+            }
+        }
     )
 
 }
@@ -78,9 +82,9 @@ fun TableTop(
             .background(DarkFeltBlue),
         contentAlignment = Alignment.Center
     ) {
-        ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() })
+        ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
         CommunityTemplate(communityCards = uiState.communityCards)
-        HoleCards(player = uiState.players.first())
+        HoleCards(player = uiState.players.first(), handStrength = uiState.handStrength)
     }
 }
 
@@ -112,19 +116,22 @@ fun CommunityTemplate(
 @Composable
 fun HoleCards(
     modifier: Modifier = Modifier,
-    player: Player
+    player: Player,
+    handStrength: String
 ) {
     Column(
         modifier
             .offset(y = 115.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row {
+        Row(
+            modifier = modifier.offset(y = 8.dp)
+        ) {
             CardImage(imageResource = player.holeCards.first.image)
             Spacer(modifier.width(4.dp))
             CardImage(imageResource = player.holeCards.second.image)
         }
-        PlayerLabel(playerName = player.name, cash = player.cash)
+        PlayerLabel(playerName = player.name, cash = player.cash, handStrength = handStrength)
     }
 }
 
@@ -132,14 +139,15 @@ fun HoleCards(
 fun PlayerLabel(
     modifier: Modifier = Modifier,
     playerName: String,
-    cash: Double
+    cash: Double,
+    handStrength: String
 ) {
     Button(
         modifier = modifier
             .width(160.dp)
             .height(40.dp)
-            .offset(y = (-16).dp)
-            .shadow(elevation = 20.dp, shape = CircleShape),
+            .offset(y = (-20).dp)
+            .shadow(elevation = 4.dp, shape = CircleShape),
         onClick = {},
 
     ) {
@@ -152,7 +160,7 @@ fun PlayerLabel(
             color = Color.White
         )
         Text(
-            text = cash.toString(),
+            text = handStrength,
             modifier = modifier
                 .weight(1f),
             style = MaterialTheme.typography.labelLarge,
@@ -176,14 +184,17 @@ fun CommunityCards(
 }
 
 @Composable
-fun ButtonRow(modifier: Modifier = Modifier, onClickDraw: () -> Unit, onClickReset: () -> Unit) {
+fun ButtonRow(
+    modifier: Modifier = Modifier,
+    onClickDraw: () -> Unit,
+    onClickReset: () -> Unit,
+    drawButtonLabel: String
+) {
     Row(
         modifier = modifier
-            .offset(x = -(240).dp, y = 140.dp)
+            .offset(x = -(300).dp, y = 140.dp)
     ) {
-        ResetButton(onClick = { onClickReset() })
-        Spacer(modifier = modifier.width(16.dp))
-        DrawCardButton(onClickDraw = { onClickDraw() })
+        DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel)
     }
 }
 
@@ -192,7 +203,7 @@ fun ResetButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
     ElevatedButton(
         onClick = { onClick() },
         modifier = modifier
-            .shadow(elevation = 20.dp, shape = CircleShape)
+            .shadow(elevation = 5.dp, shape = CircleShape)
     ) {
         Text("Reset")
     }
@@ -201,13 +212,14 @@ fun ResetButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
 fun DrawCardButton(
     onClickDraw: () -> Unit,
     modifier: Modifier = Modifier,
+    buttonLabel: String
 ) {
     ElevatedButton(
         onClick = { onClickDraw() },
         modifier = modifier
-            .shadow(elevation = 20.dp, shape = CircleShape)
+            .shadow(elevation = 5.dp, shape = CircleShape)
     ) {
-        Text("Draw Card")
+        Text(buttonLabel)
     }
 }
 

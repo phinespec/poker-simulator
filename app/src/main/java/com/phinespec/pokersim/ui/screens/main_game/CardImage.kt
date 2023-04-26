@@ -23,7 +23,7 @@ fun CardImage(
         painter = painterResource(imageResource),
         modifier = modifier
             .size(width = 60.dp, height = 90.dp)
-            .shadow(elevation = 20.dp, shape = CircleShape, false),
+            .shadow(elevation = 5.dp, shape = CircleShape, false),
         contentDescription = "",
         contentScale = ContentScale.FillBounds
     )
