@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -84,7 +85,10 @@ fun TableTop(
     ) {
         ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
         CommunityTemplate(communityCards = uiState.communityCards)
-        HoleCards(player = uiState.players.first(), handStrength = uiState.handStrength)
+        HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players.first(), handStrength = uiState.handStrength?.first() ?: "")
+        HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "")
+        HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "")
+        HoleCards(modifier = Modifier.align(Alignment.CenterEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "")
     }
 }
 
@@ -100,7 +104,6 @@ fun CommunityTemplate(
         modifier = modifier
             .width(screenWidth / 1.5f)
             .height(screenHeight / 2)
-            .offset(y = (-20).dp)
             .border(
                 width = 2.dp,
                 color = LightFeltBlue,
@@ -121,7 +124,8 @@ fun HoleCards(
 ) {
     Column(
         modifier
-            .offset(y = 115.dp),
+            .padding(horizontal = 8.dp)
+            .offset(y = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
@@ -152,17 +156,8 @@ fun PlayerLabel(
 
     ) {
         Text(
-            text = playerName,
-            modifier = modifier
-                .weight(2f)
-                .clip(CircleShape),
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White
-        )
-        Text(
-            text = handStrength,
-            modifier = modifier
-                .weight(1f),
+            text = if (!handStrength.isNullOrBlank()) handStrength else playerName,
+            modifier = modifier,
             style = MaterialTheme.typography.labelLarge,
             color = Color.White
         )
@@ -227,5 +222,8 @@ fun DrawCardButton(
 @Preview(showBackground = true, device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape")
 @Composable
 fun TablePreview() {
-//    CommunityCards()
+    val viewModel: MainViewModel = hiltViewModel()
+    val gameUiState by viewModel.uiState.collectAsState()
+
+    TableTop(uiState = gameUiState, onClickReset = { }, onClickDraw = {})
 }

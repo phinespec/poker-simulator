@@ -1,6 +1,6 @@
 package com.phinespec.pokersim.data.remote
 
-data class Player(
+data class PlayerDto(
     val cards: String,
     val hand: String,
     val result: String

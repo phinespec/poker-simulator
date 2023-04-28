@@ -9,6 +9,6 @@ interface HandStrengthApi {
     @GET("winner/texas_holdem")
     suspend fun getHandResults(
         @Query("cc") cc: String,
-        @Query("pc[]") pc: String,
+        @Query("pc[]") pc: List<String>,
     ): Response<HandStrengthResponseDto>
 }

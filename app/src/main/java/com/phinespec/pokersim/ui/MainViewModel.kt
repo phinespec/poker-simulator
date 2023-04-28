@@ -2,6 +2,7 @@ package com.phinespec.pokersim.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.phinespec.pokersim.data.remote.PlayerDto
 import com.phinespec.pokersim.data.repository.PokerSimRepository
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Deck
@@ -33,15 +34,15 @@ class MainViewModel @Inject constructor(
         resetGame()
     }
 
-    suspend fun getHandStrength(cc: String, pc: String): String {
+    suspend fun getHandStrengths(cc: String, pc: List<String>): List<PlayerDto> {
         val result = repository.getHandResults(cc, pc)
         return if (result.isSuccessful) {
             val data = result.body()!!
             Timber.d("response => $data")
-            data.winners.first().result
+            data.players
         } else {
             Timber.e("An error occured: ${result.errorBody().toString()}")
-            "404 Error"
+            emptyList()
         }
     }
 
@@ -53,7 +54,7 @@ class MainViewModel @Inject constructor(
         mainDeck.shuffle()
     }
 
-    private fun createStartingPlayers(count: Int = 1) {
+    private fun createStartingPlayers(count: Int = STARTING_PLAYER_COUNT) {
         var playersToAdd = mutableListOf<Player>()
         for (i in 0..count) {
             playersToAdd.add(
@@ -101,12 +102,16 @@ class MainViewModel @Inject constructor(
 
     fun drawRiver() {
         var cc = ""
-        var pc = ""
+        var pc = mutableListOf<String>()
 
-        val playerCards = _uiState.value.players.first().holeCards
-        pc += playerCards.first.cardString.uppercase()
-        pc += ","
-        pc += playerCards.second.cardString.uppercase()
+        _uiState.value.players.forEach { player ->
+            val playerCards = player.holeCards
+            var cs = ""
+            cs += playerCards.first.cardString.uppercase()
+            cs += ","
+            cs += playerCards.second.cardString.uppercase()
+            pc.add(cs)
+        }
 
         var cardsToAdd = uiState.value.communityCards
 
@@ -119,13 +124,18 @@ class MainViewModel @Inject constructor(
             }
 
             viewModelScope.launch {
-                val handStrength = getHandStrength(cc, pc)
+                val players = getHandStrengths(cc, pc)
+                val handStrengths = mutableListOf<String>()
 
                 withContext(Dispatchers.Main) {
+                    players.forEach { player ->
+                        val handStrength = handStrengthMap.getOrDefault(player.result, "Other")
+                        handStrengths.add(handStrength)
+                    }
                     _uiState.value = _uiState.value.copy(
                         communityCards = cardsToAdd,
                         drawCardButtonLabel = "New Hand",
-                        handStrength = handStrength
+                        handStrength = handStrengths
                     )
                 }
             }
@@ -146,7 +156,20 @@ class MainViewModel @Inject constructor(
 
     companion object {
         private val MAX_PLAYER_COUNT = 6
-        private val STARTING_PLAYER_COUNT = 1
+        private val STARTING_PLAYER_COUNT = 4
         private val MAX_COMMUNITY_COUNT = 5
+
+        private val handStrengthMap = mapOf(
+            "high_card" to "High Card",
+            "pair" to "Pair",
+            "two_pair" to "2 Pair",
+            "three_of_kind" to "3 of a Kind",
+            "straight" to "Straight",
+            "flush" to "Flush",
+            "full_house" to "Full House",
+            "four_of_kind" to "Quads",
+            "straight_flush" to "Straight Flush",
+            "royal_flush" to "Royal Flush"
+        )
     }
 }

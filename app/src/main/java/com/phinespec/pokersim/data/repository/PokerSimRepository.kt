@@ -8,7 +8,7 @@ import javax.inject.Inject
 class PokerSimRepository @Inject constructor(
     private val api: HandStrengthApi
 ) {
-    suspend fun getHandResults(cc: String, pc: String): Response<HandStrengthResponseDto> {
+    suspend fun getHandResults(cc: String, pc: List<String>): Response<HandStrengthResponseDto> {
         return api.getHandResults(cc, pc)
     }
 }
