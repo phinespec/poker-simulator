@@ -2,7 +2,7 @@ package com.phinespec.pokersim.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.phinespec.pokersim.data.remote.PlayerDto
+import com.phinespec.pokersim.data.remote.HandStrengthResponseDto
 import com.phinespec.pokersim.data.repository.PokerSimRepository
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Deck
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import javax.inject.Inject
 
 
@@ -34,16 +33,11 @@ class MainViewModel @Inject constructor(
         resetGame()
     }
 
-    suspend fun getHandStrengths(cc: String, pc: List<String>): List<PlayerDto> {
+    suspend fun getHandResults(cc: String, pc: List<String>): HandStrengthResponseDto? {
         val result = repository.getHandResults(cc, pc)
         return if (result.isSuccessful) {
-            val data = result.body()!!
-            Timber.d("response => $data")
-            data.players
-        } else {
-            Timber.e("An error occured: ${result.errorBody().toString()}")
-            emptyList()
-        }
+            result.body()!!
+        } else null
     }
 
     // build deck and shuffle all cards before dealing
@@ -123,19 +117,28 @@ class MainViewModel @Inject constructor(
                 cc += "$cardString,".uppercase()
             }
 
-            viewModelScope.launch {
-                val players = getHandStrengths(cc, pc)
+            viewModelScope.launch(Dispatchers.IO) {
+                val response = getHandResults(cc, pc)
                 val handStrengths = mutableListOf<String>()
+                val winningHands = mutableListOf<String>()
+                val winningHoles = mutableListOf<String>()
 
                 withContext(Dispatchers.Main) {
-                    players.forEach { player ->
+                    response?.players?.forEach { player ->
                         val handStrength = handStrengthMap.getOrDefault(player.result, "Other")
                         handStrengths.add(handStrength)
+                    }
+
+                    response?.winners?.forEach { winner ->
+                        winningHands.add(winner.hand)
+                        winningHoles.add(winner.cards)
                     }
                     _uiState.value = _uiState.value.copy(
                         communityCards = cardsToAdd,
                         drawCardButtonLabel = "New Hand",
-                        handStrength = handStrengths
+                        handStrength = handStrengths,
+                        winningHands = winningHands,
+                        winningHoles = winningHoles
                     )
                 }
             }
@@ -151,7 +154,6 @@ class MainViewModel @Inject constructor(
         _uiState.value = GameUiState()
         buildDeck()
         createStartingPlayers()
-//        drawCommunityCards()
     }
 
     companion object {

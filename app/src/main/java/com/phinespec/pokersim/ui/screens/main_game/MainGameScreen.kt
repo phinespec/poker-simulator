@@ -84,7 +84,7 @@ fun TableTop(
         contentAlignment = Alignment.Center
     ) {
         ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
-        CommunityTemplate(communityCards = uiState.communityCards)
+        CommunityTemplate(uiState = uiState)
         HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players.first(), handStrength = uiState.handStrength?.first() ?: "")
         HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "")
         HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "")
@@ -94,7 +94,7 @@ fun TableTop(
 
 @Composable
 fun CommunityTemplate(
-    communityCards: List<Card>,
+    uiState: GameUiState,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -112,7 +112,7 @@ fun CommunityTemplate(
             .clip(RoundedCornerShape(50)),
         contentAlignment = Alignment.Center
     ) {
-        CommunityCards(communityCards = communityCards)
+        CommunityCards(communityCards = uiState.communityCards, winningHands = uiState.winningHands ?: listOf())
     }
 }
 
@@ -131,9 +131,9 @@ fun HoleCards(
         Row(
             modifier = modifier.offset(y = 8.dp)
         ) {
-            CardImage(imageResource = player.holeCards.first.image)
+            CardImage(card = player.holeCards.first)
             Spacer(modifier.width(4.dp))
-            CardImage(imageResource = player.holeCards.second.image)
+            CardImage(card = player.holeCards.second)
         }
         PlayerLabel(playerName = player.name, cash = player.cash, handStrength = handStrength)
     }
@@ -168,11 +168,14 @@ fun PlayerLabel(
 @Composable
 fun CommunityCards(
     communityCards: List<Card>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    winningHands: List<String>
 ) {
     Row {
-        communityCards.forEach { card ->
-            CardImage(imageResource = card.image)
+        communityCards.forEach { cc ->
+            CardImage(
+                card = cc
+            )
             Spacer(modifier = modifier.width(4.dp))
         }
     }
@@ -187,7 +190,7 @@ fun ButtonRow(
 ) {
     Row(
         modifier = modifier
-            .offset(x = -(300).dp, y = 140.dp)
+            .offset(x = -(320).dp, y = 140.dp)
     ) {
         DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel)
     }

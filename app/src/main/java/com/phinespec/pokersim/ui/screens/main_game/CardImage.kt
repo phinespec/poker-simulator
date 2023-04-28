@@ -13,14 +13,15 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.phinespec.pokersim.model.Card
 
 @Composable
 fun CardImage(
     modifier: Modifier = Modifier,
-    imageResource: Int
+    card: Card
 ) {
     Image(
-        painter = painterResource(imageResource),
+        painter = painterResource(card.image),
         modifier = modifier
             .size(width = 60.dp, height = 90.dp)
             .shadow(elevation = 5.dp, shape = CircleShape, false),
