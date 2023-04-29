@@ -1,5 +1,7 @@
 package com.phinespec.pokersim.ui.screens
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -18,8 +20,12 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -105,9 +111,7 @@ fun CommunityTemplate(
             .width(screenWidth / 1.5f)
             .height(screenHeight / 2)
             .border(
-                width = 2.dp,
-                color = LightFeltBlue,
-                shape = RoundedCornerShape(100.dp)
+                width = 2.dp, color = LightFeltBlue, shape = RoundedCornerShape(100.dp)
             )
             .clip(RoundedCornerShape(50)),
         contentAlignment = Alignment.Center
@@ -132,7 +136,6 @@ fun HoleCards(
             modifier = modifier.offset(y = 8.dp)
         ) {
             CardImage(card = player.holeCards.first)
-            Spacer(modifier.width(4.dp))
             CardImage(card = player.holeCards.second)
         }
         PlayerLabel(playerName = player.name, cash = player.cash, handStrength = handStrength)
@@ -172,13 +175,31 @@ fun CommunityCards(
     winningHands: List<String>
 ) {
     Row {
-        communityCards.forEach { cc ->
-            CardImage(
-                card = cc
-            )
-            Spacer(modifier = modifier.width(4.dp))
+        if (communityCards.size == 3) {
+            CardImage(card = communityCards[0])
+            CardImage(card = communityCards[1])
+            CardImage(card = communityCards[2])
+        } else if (communityCards.size == 4) {
+            CardImage(card = communityCards[0])
+            CardImage(card = communityCards[1])
+            CardImage(card = communityCards[2])
+            CardImage(card = communityCards[3])
+        } else if (communityCards.size == 5) {
+            CardImage(card = communityCards[0], winner = getWinningCards(winningHands).contains(communityCards[0].cardString.uppercase()))
+            CardImage(card = communityCards[1], winner = getWinningCards(winningHands).contains(communityCards[1].cardString.uppercase()))
+            CardImage(card = communityCards[2], winner = getWinningCards(winningHands).contains(communityCards[2].cardString.uppercase()))
+            CardImage(card = communityCards[3], winner = getWinningCards(winningHands).contains(communityCards[3].cardString.uppercase()))
+            CardImage(card = communityCards[4], winner = getWinningCards(winningHands).contains(communityCards[4].cardString.uppercase()))
         }
     }
+}
+
+private fun getWinningCards(winningHands: List<String>): String {
+    var winningCards = ""
+    winningHands.forEach {
+        winningCards += it.uppercase()
+    }
+    return winningCards
 }
 
 @Composable
