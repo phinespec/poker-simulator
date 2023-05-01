@@ -50,7 +50,7 @@ class MainViewModel @Inject constructor(
 
     private fun createStartingPlayers(count: Int = STARTING_PLAYER_COUNT) {
         var playersToAdd = mutableListOf<Player>()
-        for (i in 0..count) {
+        for (i in 0 until count) {
             playersToAdd.add(
                 Player(
                     id = i,
@@ -59,7 +59,7 @@ class MainViewModel @Inject constructor(
                 )
             )
         }
-        if (playersToAdd.size < MAX_PLAYER_COUNT) {
+        if (playersToAdd.size <= MAX_PLAYER_COUNT) {
             _uiState.value = _uiState.value.copy(
                 players = playersToAdd
             )
@@ -121,7 +121,7 @@ class MainViewModel @Inject constructor(
                 val response = getHandResults(cc, pc)
                 val handStrengths = mutableListOf<String>()
                 val winningHands = mutableListOf<String>()
-                val winningHoles = mutableListOf<String>()
+                val winningPlayerIds = mutableListOf<Int>()
 
                 withContext(Dispatchers.Main) {
                     response?.players?.forEach { player ->
@@ -131,18 +131,45 @@ class MainViewModel @Inject constructor(
 
                     response?.winners?.forEach { winner ->
                         winningHands.add(winner.hand)
-                        winningHoles.add(winner.cards)
                     }
+
+                    val winningIds = getWinningPlayerIds(winningHands)
+
                     _uiState.value = _uiState.value.copy(
                         communityCards = cardsToAdd,
                         drawCardButtonLabel = "New Hand",
                         handStrength = handStrengths,
                         winningHands = winningHands,
-                        winningHoles = winningHoles
+                        winningPlayerIds = winningIds
                     )
                 }
             }
         }
+    }
+
+    /**
+     * This function returns a list of player ids for winners
+     *
+     * @param winningHands is a list of strings which represent winning hands
+     */
+    private fun getWinningPlayerIds(winningHands: List<String>): List<Int> {
+        var winningIds = mutableListOf<Int>()
+
+        _uiState.value.players.forEach { player ->
+            var holeString = ""
+            holeString += player.holeCards.first.cardString.uppercase()
+            holeString += ","
+            holeString += player.holeCards.second.cardString.uppercase()
+
+            for (hand in winningHands) {
+                if (hand.contains(holeString.takeWhile { it.isLetterOrDigit() }) ||
+                    hand.contains(holeString.takeLastWhile { it.isLetterOrDigit() })
+                ) {
+                    winningIds.add(player.id)
+                }
+            }
+        }
+        return winningIds
     }
 
     private fun getRandomName(): String = playerNames.random()
@@ -157,7 +184,7 @@ class MainViewModel @Inject constructor(
     }
 
     companion object {
-        private val MAX_PLAYER_COUNT = 6
+        private val MAX_PLAYER_COUNT = 4
         private val STARTING_PLAYER_COUNT = 4
         private val MAX_COMMUNITY_COUNT = 5
 

@@ -10,5 +10,5 @@ data class GameUiState(
     val drawCardButtonLabel: String = "Draw Flop",
     val handStrength: List<String>? = null,
     val winningHands: List<String>? = null,
-    val winningHoles: List<String>? = null
+    val winningPlayerIds: List<Int> = emptyList()
 )

@@ -1,13 +1,11 @@
 package com.phinespec.pokersim.ui.screens
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -20,12 +18,8 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +29,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.phinespec.pokersim.data.remote.Winner
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.ui.GameUiState
@@ -42,6 +37,7 @@ import com.phinespec.pokersim.ui.MainViewModel
 import com.phinespec.pokersim.ui.screens.main_game.CardImage
 import com.phinespec.pokersim.ui.theme.DarkFeltBlue
 import com.phinespec.pokersim.ui.theme.LightFeltBlue
+import timber.log.Timber
 
 
 @Composable
@@ -91,10 +87,10 @@ fun TableTop(
     ) {
         ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
         CommunityTemplate(uiState = uiState)
-        HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players.first(), handStrength = uiState.handStrength?.first() ?: "")
-        HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "")
-        HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "")
-        HoleCards(modifier = Modifier.align(Alignment.CenterEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "")
+        HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players[0], handStrength = uiState.handStrength?.get(0) ?: "", isWinner = uiState.winningPlayerIds.contains(0))
+        HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "", isWinner = uiState.winningPlayerIds.contains(1))
+        HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "", isWinner = uiState.winningPlayerIds.contains(2))
+        HoleCards(modifier = Modifier.align(Alignment.CenterEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "", isWinner = uiState.winningPlayerIds.contains(3))
     }
 }
 
@@ -124,7 +120,8 @@ fun CommunityTemplate(
 fun HoleCards(
     modifier: Modifier = Modifier,
     player: Player,
-    handStrength: String
+    handStrength: String,
+    isWinner: Boolean = false
 ) {
     Column(
         modifier
@@ -135,10 +132,10 @@ fun HoleCards(
         Row(
             modifier = modifier.offset(y = 8.dp)
         ) {
-            CardImage(card = player.holeCards.first)
-            CardImage(card = player.holeCards.second)
+            CardImage(card = player.holeCards.first, isFaded = !isWinner && !handStrength.isNullOrBlank())
+            CardImage(card = player.holeCards.second, isFaded = !isWinner && !handStrength.isNullOrBlank())
         }
-        PlayerLabel(playerName = player.name, cash = player.cash, handStrength = handStrength)
+        PlayerLabel(playerName = player.name, cash = player.cash, handStrength = handStrength, isWinner = isWinner)
     }
 }
 
@@ -147,7 +144,8 @@ fun PlayerLabel(
     modifier: Modifier = Modifier,
     playerName: String,
     cash: Double,
-    handStrength: String
+    handStrength: String,
+    isWinner: Boolean
 ) {
     Button(
         modifier = modifier
@@ -159,7 +157,12 @@ fun PlayerLabel(
 
     ) {
         Text(
-            text = if (!handStrength.isNullOrBlank()) handStrength else playerName,
+//            text = if (!handStrength.isNullOrBlank()) handStrength else playerName,
+            text = when {
+                !handStrength.isNullOrBlank() && !isWinner -> handStrength
+                isWinner -> "$handStrength Wins!"
+                else -> playerName
+            },
             modifier = modifier,
             style = MaterialTheme.typography.labelLarge,
             color = Color.White
@@ -185,11 +188,11 @@ fun CommunityCards(
             CardImage(card = communityCards[2])
             CardImage(card = communityCards[3])
         } else if (communityCards.size == 5) {
-            CardImage(card = communityCards[0], winner = getWinningCards(winningHands).contains(communityCards[0].cardString.uppercase()))
-            CardImage(card = communityCards[1], winner = getWinningCards(winningHands).contains(communityCards[1].cardString.uppercase()))
-            CardImage(card = communityCards[2], winner = getWinningCards(winningHands).contains(communityCards[2].cardString.uppercase()))
-            CardImage(card = communityCards[3], winner = getWinningCards(winningHands).contains(communityCards[3].cardString.uppercase()))
-            CardImage(card = communityCards[4], winner = getWinningCards(winningHands).contains(communityCards[4].cardString.uppercase()))
+            CardImage(card = communityCards[0], isWinner = getWinningCards(winningHands).contains(communityCards[0].cardString.uppercase()))
+            CardImage(card = communityCards[1], isWinner = getWinningCards(winningHands).contains(communityCards[1].cardString.uppercase()))
+            CardImage(card = communityCards[2], isWinner = getWinningCards(winningHands).contains(communityCards[2].cardString.uppercase()))
+            CardImage(card = communityCards[3], isWinner = getWinningCards(winningHands).contains(communityCards[3].cardString.uppercase()))
+            CardImage(card = communityCards[4], isWinner = getWinningCards(winningHands).contains(communityCards[4].cardString.uppercase()))
         }
     }
 }
@@ -199,6 +202,7 @@ private fun getWinningCards(winningHands: List<String>): String {
     winningHands.forEach {
         winningCards += it.uppercase()
     }
+    Timber.d("Winning cards => $winningCards")
     return winningCards
 }
 

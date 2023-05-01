@@ -6,7 +6,6 @@ import timber.log.Timber
 
 fun mapNameToImage(cardName: String): Int {
     cardNameToImageMap[cardName]?.let {
-        Timber.d("Card image resource => $it")
         return it
     }
     return -1
