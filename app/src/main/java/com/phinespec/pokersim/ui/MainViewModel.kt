@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.phinespec.pokersim.data.remote.HandStrengthResponseDto
 import com.phinespec.pokersim.data.repository.PokerSimRepository
+import com.phinespec.pokersim.model.Bet
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.playerNames
+import com.phinespec.pokersim.utils.Phase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +47,7 @@ class MainViewModel @Inject constructor(
         val deck = Deck()
         deck.initialize()
         mainDeck = deck.cards
-        mainDeck.shuffle()
+        repeat(3) { mainDeck.shuffle() }
     }
 
     private fun createStartingPlayers(count: Int = STARTING_PLAYER_COUNT) {
@@ -75,21 +77,22 @@ class MainViewModel @Inject constructor(
         }
 
         _uiState.value = _uiState.value.copy(
+            gamePhase = Phase.FLOP,
             communityCards = cardsToAdd,
-            drawCardButtonLabel = "Draw Turn"
+            drawCardButtonLabel = "Turn"
         )
     }
 
     fun drawTurn() {
-
         var cardsToAdd = uiState.value.communityCards
 
         if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
             cardsToAdd.add(mainDeck.removeFirst())
 
             _uiState.value = _uiState.value.copy(
+                gamePhase = Phase.TURN,
                 communityCards = cardsToAdd,
-                drawCardButtonLabel = "Draw River"
+                drawCardButtonLabel = "River"
             )
         }
     }
@@ -121,7 +124,6 @@ class MainViewModel @Inject constructor(
                 val response = getHandResults(cc, pc)
                 val handStrengths = mutableListOf<String>()
                 val winningHands = mutableListOf<String>()
-                val winningPlayerIds = mutableListOf<Int>()
 
                 withContext(Dispatchers.Main) {
                     response?.players?.forEach { player ->
@@ -136,12 +138,14 @@ class MainViewModel @Inject constructor(
                     val winningIds = getWinningPlayerIds(winningHands)
 
                     _uiState.value = _uiState.value.copy(
+                        gamePhase = Phase.RIVER,
                         communityCards = cardsToAdd,
-                        drawCardButtonLabel = "New Hand",
+                        drawCardButtonLabel = "Next",
                         handStrength = handStrengths,
                         winningHands = winningHands,
                         winningPlayerIds = winningIds
                     )
+                    checkIfDidWin()
                 }
             }
         }
@@ -178,15 +182,45 @@ class MainViewModel @Inject constructor(
 
     fun resetGame() {
         mainDeck.clear()
-        _uiState.value = GameUiState()
+        _uiState.value = GameUiState(cash = _uiState.value.cash)
         buildDeck()
         createStartingPlayers()
     }
 
+    fun placeBet(playerId: Int) {
+        val bet = Bet.create(
+            playerId = playerId,
+            gamePhase = _uiState.value.gamePhase,
+            isLocked = true
+        )
+
+        _uiState.value = _uiState.value.copy(
+            currentBet = bet
+        )
+    }
+
+    private fun checkIfDidWin() {
+        _uiState.value.currentBet?.let { bet ->
+            if (_uiState.value.winningPlayerIds.contains(bet.playerId)) {
+                addCash(bet.amount)
+            } else {
+                subCash(bet.amount)
+            }
+        }
+    }
+
+    private fun addCash(amount: Int) {
+        _uiState.value = _uiState.value.copy(cash = _uiState.value.cash + amount)
+    }
+
+    private fun subCash(amount: Int) {
+        _uiState.value = _uiState.value.copy(cash = _uiState.value.cash - amount)
+    }
+
     companion object {
-        private val MAX_PLAYER_COUNT = 4
-        private val STARTING_PLAYER_COUNT = 4
-        private val MAX_COMMUNITY_COUNT = 5
+        private const val MAX_PLAYER_COUNT = 4
+        private const val STARTING_PLAYER_COUNT = 4
+        private const val MAX_COMMUNITY_COUNT = 5
 
         private val handStrengthMap = mapOf(
             "high_card" to "High Card",

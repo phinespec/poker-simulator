@@ -2,7 +2,6 @@ package com.phinespec.pokersim.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,11 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,20 +26,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.provider.FontsContractCompat.FontFamilyResult
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.phinespec.pokersim.data.remote.Winner
+import com.phinespec.pokersim.model.Bet
 import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.ui.GameUiState
 import com.phinespec.pokersim.ui.MainViewModel
 import com.phinespec.pokersim.ui.screens.main_game.CardImage
 import com.phinespec.pokersim.ui.theme.DarkFeltBlue
+import com.phinespec.pokersim.ui.theme.DarkestFeltBlue
 import com.phinespec.pokersim.ui.theme.LightFeltBlue
 import timber.log.Timber
 
@@ -53,11 +60,14 @@ fun MainGameScreen(
         onClickReset = { viewModel.resetGame() },
         onClickDraw = {
             when (viewModel.uiState.value.drawCardButtonLabel) {
-                "Draw Flop" -> { viewModel.drawFlop() }
-                "Draw Turn" -> { viewModel.drawTurn() }
-                "Draw River" -> { viewModel.drawRiver() }
+                "Flop" -> { viewModel.drawFlop() }
+                "Turn" -> { viewModel.drawTurn() }
+                "River" -> { viewModel.drawRiver() }
                 else -> { viewModel.resetGame() }
             }
+        },
+        onClickPlayerLabel = {playerId ->
+            viewModel.placeBet(playerId)
         }
     )
 
@@ -68,16 +78,18 @@ fun GameLayout(
     uiState: GameUiState,
     onClickReset: () -> Unit,
     onClickDraw: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClickPlayerLabel: (Int) -> Unit
 ) {
-    TableTop(uiState, onClickReset = onClickReset, onClickDraw = onClickDraw)
+    TableTop(uiState, onClickReset = onClickReset, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) })
 }
 
 @Composable
 fun TableTop(
     uiState: GameUiState,
     onClickReset: () -> Unit,
-    onClickDraw: () -> Unit
+    onClickDraw: () -> Unit,
+    onClickPlayerLabel: (Int) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -86,11 +98,20 @@ fun TableTop(
         contentAlignment = Alignment.Center
     ) {
         ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
+        CashDisplay(modifier = Modifier.align(Alignment.BottomEnd), cash = uiState.cash)
         CommunityTemplate(uiState = uiState)
-        HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players[0], handStrength = uiState.handStrength?.get(0) ?: "", isWinner = uiState.winningPlayerIds.contains(0))
-        HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "", isWinner = uiState.winningPlayerIds.contains(1))
-        HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "", isWinner = uiState.winningPlayerIds.contains(2))
-        HoleCards(modifier = Modifier.align(Alignment.CenterEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "", isWinner = uiState.winningPlayerIds.contains(3))
+        HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players[0], handStrength = uiState.handStrength?.get(0) ?: "",
+            isWinner = uiState.winningPlayerIds.contains(0), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
+        )
+        HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "",
+            isWinner = uiState.winningPlayerIds.contains(1), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
+        )
+        HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "",
+            isWinner = uiState.winningPlayerIds.contains(2), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
+        )
+        HoleCards(modifier = Modifier.align(Alignment.CenterEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "",
+            isWinner = uiState.winningPlayerIds.contains(3), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
+        )
     }
 }
 
@@ -117,25 +138,63 @@ fun CommunityTemplate(
 }
 
 @Composable
+fun CashDisplay(
+    cash: Int,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        modifier = modifier
+            .padding(16.dp),
+        text = "$$cash",
+        style = MaterialTheme.typography.displaySmall,
+        color = Color.White
+    )
+}
+
+@Composable
 fun HoleCards(
     modifier: Modifier = Modifier,
     player: Player,
     handStrength: String,
-    isWinner: Boolean = false
+    isWinner: Boolean = false,
+    betPlaced: Bet? = null,
+    onClickPlayerLabel: (Int) -> Unit
 ) {
-    Column(
+    Box(
         modifier
             .padding(horizontal = 8.dp)
-            .offset(y = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .offset(y = 4.dp)
     ) {
-        Row(
-            modifier = modifier.offset(y = 8.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CardImage(card = player.holeCards.first, isFaded = !isWinner && !handStrength.isNullOrBlank())
-            CardImage(card = player.holeCards.second, isFaded = !isWinner && !handStrength.isNullOrBlank())
+            Row(
+                modifier = modifier.offset(y = 8.dp)
+            ) {
+                CardImage(card = player.holeCards.first, isFaded = !isWinner && !handStrength.isNullOrBlank())
+                CardImage(card = player.holeCards.second, isFaded = !isWinner && !handStrength.isNullOrBlank())
+            }
+            PlayerLabel(
+                playerName = player.name,
+                handStrength = handStrength,
+                isWinner = isWinner,
+                onClick = {
+                    if (betPlaced == null) {
+                        onClickPlayerLabel(player.id)
+                    }
+                }
+            )
         }
-        PlayerLabel(playerName = player.name, cash = player.cash, handStrength = handStrength, isWinner = isWinner)
+        if (betPlaced?.playerId == player.id) {
+            Icon(
+                imageVector = Icons.Default.Lock, contentDescription = "",
+                modifier = Modifier
+                    .size(60.dp)
+                    .align(Alignment.Center)
+                    .offset(y = (-24).dp)
+                    .alpha(.5f)
+            )
+        }
     }
 }
 
@@ -143,17 +202,18 @@ fun HoleCards(
 fun PlayerLabel(
     modifier: Modifier = Modifier,
     playerName: String,
-    cash: Double,
     handStrength: String,
-    isWinner: Boolean
+    isWinner: Boolean,
+    onClick: () -> Unit
 ) {
-    Button(
+    ElevatedButton(
         modifier = modifier
             .width(160.dp)
             .height(40.dp)
             .offset(y = (-20).dp)
             .shadow(elevation = 4.dp, shape = CircleShape),
-        onClick = {},
+        colors = ButtonDefaults.buttonColors(containerColor = DarkestFeltBlue),
+        onClick = { onClick() },
 
     ) {
         Text(
@@ -215,7 +275,7 @@ fun ButtonRow(
 ) {
     Row(
         modifier = modifier
-            .offset(x = -(320).dp, y = 140.dp)
+            .offset(x = -(320).dp, y = 120.dp)
     ) {
         DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel)
     }
@@ -239,10 +299,17 @@ fun DrawCardButton(
 ) {
     ElevatedButton(
         onClick = { onClickDraw() },
+        colors = ButtonDefaults.buttonColors(containerColor = DarkestFeltBlue),
         modifier = modifier
+            .border(width = 2.dp, color = LightFeltBlue, shape = CircleShape)
+            .height(80.dp)
+            .width(120.dp)
             .shadow(elevation = 5.dp, shape = CircleShape)
     ) {
-        Text(buttonLabel)
+        Text(
+            buttonLabel.uppercase(),
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
 
@@ -250,8 +317,5 @@ fun DrawCardButton(
 @Preview(showBackground = true, device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape")
 @Composable
 fun TablePreview() {
-    val viewModel: MainViewModel = hiltViewModel()
-    val gameUiState by viewModel.uiState.collectAsState()
-
-    TableTop(uiState = gameUiState, onClickReset = { }, onClickDraw = {})
+    DrawCardButton(onClickDraw = { }, buttonLabel = "Push Me")
 }
