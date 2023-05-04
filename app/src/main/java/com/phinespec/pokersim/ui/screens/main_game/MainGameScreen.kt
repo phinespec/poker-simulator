@@ -1,5 +1,9 @@
 package com.phinespec.pokersim.ui.screens
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -15,35 +19,41 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.provider.FontsContractCompat.FontFamilyResult
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.phinespec.pokersim.model.Bet
-import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Player
+import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.ui.GameUiState
 import com.phinespec.pokersim.ui.MainViewModel
-import com.phinespec.pokersim.ui.screens.main_game.CardImage
+import com.phinespec.pokersim.ui.screens.main_game.FlipCard
 import com.phinespec.pokersim.ui.theme.DarkFeltBlue
 import com.phinespec.pokersim.ui.theme.DarkestFeltBlue
 import com.phinespec.pokersim.ui.theme.LightFeltBlue
+import com.phinespec.pokersim.ui.theme.PurpleGrey40
+import com.phinespec.pokersim.utils.CardFace
 import timber.log.Timber
 
 
@@ -142,10 +152,20 @@ fun CashDisplay(
     cash: Int,
     modifier: Modifier = Modifier
 ) {
+    var total by remember { mutableStateOf(0) }
+
+    val cashCounter by animateIntAsState(
+        targetValue = cash,
+        animationSpec = tween(
+            delayMillis = 500,
+            durationMillis = 1000,
+            easing = LinearEasing
+        )
+    )
     Text(
         modifier = modifier
             .padding(16.dp),
-        text = "$$cash",
+        text = "$$cashCounter",
         style = MaterialTheme.typography.displaySmall,
         color = Color.White
     )
@@ -160,6 +180,12 @@ fun HoleCards(
     betPlaced: Bet? = null,
     onClickPlayerLabel: (Int) -> Unit
 ) {
+    var cardFace by remember { mutableStateOf(CardFace.Back) }
+
+    LaunchedEffect(key1 = true) {
+        cardFace = cardFace.next
+    }
+
     Box(
         modifier
             .padding(horizontal = 8.dp)
@@ -171,8 +197,38 @@ fun HoleCards(
             Row(
                 modifier = modifier.offset(y = 8.dp)
             ) {
-                CardImage(card = player.holeCards.first, isFaded = !isWinner && !handStrength.isNullOrBlank())
-                CardImage(card = player.holeCards.second, isFaded = !isWinner && !handStrength.isNullOrBlank())
+                FlipCard(face = cardFace, isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
+                    Image(
+                        painter = painterResource(player.holeCards.first.image),
+                        contentDescription = "",
+                        contentScale = ContentScale.FillBounds
+                    )
+                }) {
+//                    Image(
+//                        painter = painterResource(R.drawable.card_back_blue),
+//                        modifier = modifier
+//                            .fillMaxSize(),
+//                        contentDescription = "",
+//                        contentScale = ContentScale.FillBounds
+//                    )
+                    CardBack()
+                }
+                FlipCard(face = cardFace, isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
+                    Image(
+                        painter = painterResource(player.holeCards.second.image),
+                        contentDescription = "",
+                        contentScale = ContentScale.FillBounds
+                    )
+                }) {
+//                    Image(
+//                        painter = painterResource(R.drawable.card_back_blue),
+//                        modifier = modifier
+//                            .fillMaxSize(),
+//                        contentDescription = "",
+//                        contentScale = ContentScale.FillBounds
+//                    )
+                    CardBack()
+                }
             }
             PlayerLabel(
                 playerName = player.name,
@@ -233,28 +289,54 @@ fun PlayerLabel(
 
 @Composable
 fun CommunityCards(
-    communityCards: List<Card>,
+    communityCards: List<PlayingCard>,
     modifier: Modifier = Modifier,
     winningHands: List<String>
 ) {
+
     Row {
-        if (communityCards.size == 3) {
-            CardImage(card = communityCards[0])
-            CardImage(card = communityCards[1])
-            CardImage(card = communityCards[2])
-        } else if (communityCards.size == 4) {
-            CardImage(card = communityCards[0])
-            CardImage(card = communityCards[1])
-            CardImage(card = communityCards[2])
-            CardImage(card = communityCards[3])
-        } else if (communityCards.size == 5) {
-            CardImage(card = communityCards[0], isWinner = getWinningCards(winningHands).contains(communityCards[0].cardString.uppercase()))
-            CardImage(card = communityCards[1], isWinner = getWinningCards(winningHands).contains(communityCards[1].cardString.uppercase()))
-            CardImage(card = communityCards[2], isWinner = getWinningCards(winningHands).contains(communityCards[2].cardString.uppercase()))
-            CardImage(card = communityCards[3], isWinner = getWinningCards(winningHands).contains(communityCards[3].cardString.uppercase()))
-            CardImage(card = communityCards[4], isWinner = getWinningCards(winningHands).contains(communityCards[4].cardString.uppercase()))
+        for (i in communityCards.indices) {
+            var cardFace by remember { mutableStateOf(CardFace.Back) }
+            FlipCard(
+                face = cardFace,
+                isWinner = if (communityCards.size == 5)
+                    getWinningCards(winningHands).contains(
+                        communityCards[i]
+                            .cardString.uppercase()
+                    )
+                else false,
+                front = {
+                    Image(
+                        painter = painterResource(id = communityCards[i].image),
+                        modifier = Modifier.fillMaxSize(),
+                        contentDescription = "",
+                        contentScale = ContentScale.FillBounds
+                    )
+                },
+                back = {
+//                    Image(
+//                        painter = painterResource(id = R.drawable.card_back_red),
+//                        modifier = Modifier.fillMaxSize(),
+//                        contentDescription = "",
+//                        contentScale = ContentScale.Inside
+//                    )
+                    CardBack()
+                }
+            )
+            LaunchedEffect(key1 = true) {
+                cardFace = cardFace.next
+            }
         }
     }
+}
+
+@Composable
+fun CardBack(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(PurpleGrey40)
+    )
 }
 
 private fun getWinningCards(winningHands: List<String>): String {
@@ -303,7 +385,7 @@ fun DrawCardButton(
         modifier = modifier
             .border(width = 2.dp, color = LightFeltBlue, shape = CircleShape)
             .height(80.dp)
-            .width(120.dp)
+            .width(100.dp)
             .shadow(elevation = 5.dp, shape = CircleShape)
     ) {
         Text(
@@ -317,5 +399,5 @@ fun DrawCardButton(
 @Preview(showBackground = true, device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape")
 @Composable
 fun TablePreview() {
-    DrawCardButton(onClickDraw = { }, buttonLabel = "Push Me")
+    DrawCardButton(onClickDraw = { }, buttonLabel = "NEXT")
 }

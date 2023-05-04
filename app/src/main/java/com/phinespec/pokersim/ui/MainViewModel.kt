@@ -5,10 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.phinespec.pokersim.data.remote.HandStrengthResponseDto
 import com.phinespec.pokersim.data.repository.PokerSimRepository
 import com.phinespec.pokersim.model.Bet
-import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
+import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.model.playerNames
+import com.phinespec.pokersim.utils.HandValue
 import com.phinespec.pokersim.utils.Phase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,7 @@ class MainViewModel @Inject constructor(
     private val repository: PokerSimRepository
 ) : ViewModel() {
 
-    private var mainDeck = mutableListOf<Card>()
+    private var mainDeck = mutableListOf<PlayingCard>()
 
     // Observables
     private val _uiState = MutableStateFlow(GameUiState())
@@ -69,7 +70,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun drawFlop() {
-        var cardsToAdd = mutableListOf<Card>()
+        var cardsToAdd = mutableListOf<PlayingCard>()
 
         repeat(3) { count ->
             val topCard = mainDeck.removeFirst()
@@ -127,7 +128,7 @@ class MainViewModel @Inject constructor(
 
                 withContext(Dispatchers.Main) {
                     response?.players?.forEach { player ->
-                        val handStrength = handStrengthMap.getOrDefault(player.result, "Other")
+                        val handStrength = handStrengthMapToString.getOrDefault(player.result, "Other")
                         handStrengths.add(handStrength)
                     }
 
@@ -145,7 +146,7 @@ class MainViewModel @Inject constructor(
                         winningHands = winningHands,
                         winningPlayerIds = winningIds
                     )
-                    checkIfDidWin()
+                    checkIfDidWin(response?.winners?.first()?.result)
                 }
             }
         }
@@ -178,7 +179,7 @@ class MainViewModel @Inject constructor(
 
     private fun getRandomName(): String = playerNames.random()
 
-    private fun getHoleCards(): Pair<Card, Card> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
+    private fun getHoleCards(): Pair<PlayingCard, PlayingCard> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
 
     fun resetGame() {
         mainDeck.clear()
@@ -199,14 +200,25 @@ class MainViewModel @Inject constructor(
         )
     }
 
-    private fun checkIfDidWin() {
+    private fun checkIfDidWin(winningHand: String?) {
         _uiState.value.currentBet?.let { bet ->
             if (_uiState.value.winningPlayerIds.contains(bet.playerId)) {
-                addCash(bet.amount)
+                addCash(getPayoutAmount(bet.amount, winningHand))
             } else {
-                subCash(bet.amount)
+                subCash(getPayoutAmount(bet.amount))
             }
         }
+    }
+
+    // Determine payout base on hand value
+    private fun getPayoutAmount(betAmount: Int, handStrength: String? = null): Int {
+        handStrength?.let {
+            val multiplier = handStrengthMapToHandValue[it]?.multiplier
+            multiplier?.let { mult ->
+                return mult * betAmount
+            }
+        }
+        return betAmount
     }
 
     private fun addCash(amount: Int) {
@@ -222,7 +234,7 @@ class MainViewModel @Inject constructor(
         private const val STARTING_PLAYER_COUNT = 4
         private const val MAX_COMMUNITY_COUNT = 5
 
-        private val handStrengthMap = mapOf(
+        private val handStrengthMapToString = mapOf(
             "high_card" to "High Card",
             "pair" to "Pair",
             "two_pair" to "2 Pair",
@@ -230,9 +242,22 @@ class MainViewModel @Inject constructor(
             "straight" to "Straight",
             "flush" to "Flush",
             "full_house" to "Full House",
-            "four_of_kind" to "Quads",
+            "four_of_kind" to "4 of a Kind",
             "straight_flush" to "Straight Flush",
             "royal_flush" to "Royal Flush"
+        )
+
+        private val handStrengthMapToHandValue = mapOf<String, HandValue>(
+            "high_card" to HandValue.HIGH_CARD,
+            "pair" to HandValue.PAIR,
+            "two_pair" to HandValue.TWO_PAIR,
+            "three_of_kind" to HandValue.THREE_OF_KIND,
+            "straight" to HandValue.STRAIGHT,
+            "flush" to HandValue.FLUSH,
+            "full_house" to HandValue.FULL_HOUSE,
+            "four_of_kind" to HandValue.FOUR_OF_KIND,
+            "straight_flush" to HandValue.STRAIGHT_FLUSH,
+            "royal_flush" to HandValue.ROYAL_FLUSH
         )
     }
 }

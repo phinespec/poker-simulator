@@ -3,7 +3,7 @@ package com.phinespec.pokersim.model
 import androidx.annotation.DrawableRes
 
 
-data class Card(
+data class PlayingCard(
     val cardString: String,
     @DrawableRes val image: Int
 )

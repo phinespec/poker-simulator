@@ -1,15 +1,15 @@
 package com.phinespec.pokersim.ui
 
 import com.phinespec.pokersim.model.Bet
-import com.phinespec.pokersim.model.Card
 import com.phinespec.pokersim.model.Player
+import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.utils.Phase
 
 data class GameUiState(
     val gamePhase: Phase = Phase.PREFLOP,
     val currentBet: Bet? = null,
     val cash: Int = 50,
-    val communityCards: MutableList<Card> = mutableListOf(),
+    val communityCards: MutableList<PlayingCard> = mutableListOf(),
     val players: MutableList<Player> = mutableListOf(),
     val drawCardButtonLabel: String = "Flop",
     val handStrength: List<String>? = null,
