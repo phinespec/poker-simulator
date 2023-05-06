@@ -1,11 +1,15 @@
 package com.phinespec.pokersim.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -180,12 +184,6 @@ fun HoleCards(
     betPlaced: Bet? = null,
     onClickPlayerLabel: (Int) -> Unit
 ) {
-    var cardFace by remember { mutableStateOf(CardFace.Back) }
-
-    LaunchedEffect(key1 = true) {
-        cardFace = cardFace.next
-    }
-
     Box(
         modifier
             .padding(horizontal = 8.dp)
@@ -194,42 +192,46 @@ fun HoleCards(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = modifier.offset(y = 8.dp)
+            var isVisible by remember { mutableStateOf(false) }
+            LaunchedEffect(key1 = true) {
+                isVisible = true
+            }
+
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = 500,
+                        easing = FastOutSlowInEasing
+                    ),
+                    initialOffsetY = { 80 }
+                )
             ) {
-                FlipCard(face = cardFace, isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
-                    Image(
-                        painter = painterResource(player.holeCards.first.image),
-                        contentDescription = "",
-                        contentScale = ContentScale.FillBounds
-                    )
-                }) {
-//                    Image(
-//                        painter = painterResource(R.drawable.card_back_blue),
-//                        modifier = modifier
-//                            .fillMaxSize(),
-//                        contentDescription = "",
-//                        contentScale = ContentScale.FillBounds
-//                    )
-                    CardBack()
-                }
-                FlipCard(face = cardFace, isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
-                    Image(
-                        painter = painterResource(player.holeCards.second.image),
-                        contentDescription = "",
-                        contentScale = ContentScale.FillBounds
-                    )
-                }) {
-//                    Image(
-//                        painter = painterResource(R.drawable.card_back_blue),
-//                        modifier = modifier
-//                            .fillMaxSize(),
-//                        contentDescription = "",
-//                        contentScale = ContentScale.FillBounds
-//                    )
-                    CardBack()
+                Row(
+                    modifier = modifier.offset(y = 8.dp)
+                ) {
+
+                    FlipCard(isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
+                        Image(
+                            painter = painterResource(player.holeCards.first.image),
+                            contentDescription = "",
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }) {
+                        CardBack()
+                    }
+                    FlipCard(isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
+                        Image(
+                            painter = painterResource(player.holeCards.second.image),
+                            contentDescription = "",
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }) {
+                        CardBack()
+                    }
                 }
             }
+
             PlayerLabel(
                 playerName = player.name,
                 handStrength = handStrength,
@@ -314,12 +316,6 @@ fun CommunityCards(
                     )
                 },
                 back = {
-//                    Image(
-//                        painter = painterResource(id = R.drawable.card_back_red),
-//                        modifier = Modifier.fillMaxSize(),
-//                        contentDescription = "",
-//                        contentScale = ContentScale.Inside
-//                    )
                     CardBack()
                 }
             )
@@ -343,6 +339,7 @@ private fun getWinningCards(winningHands: List<String>): String {
     var winningCards = ""
     winningHands.forEach {
         winningCards += it.uppercase()
+        winningCards += ","
     }
     Timber.d("Winning cards => $winningCards")
     return winningCards

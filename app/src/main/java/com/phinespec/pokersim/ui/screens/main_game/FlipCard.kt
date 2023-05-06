@@ -47,7 +47,7 @@ fun FlipCard(
     val rotation by animateFloatAsState(
         targetValue = face.angle,
         animationSpec = tween(
-            durationMillis = 1000,
+            durationMillis = 500,
             easing = FastOutSlowInEasing
         )
     )
