@@ -9,7 +9,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -95,11 +94,12 @@ fun GameLayout(
     modifier: Modifier = Modifier,
     onClickPlayerLabel: (Int) -> Unit
 ) {
-    TableTop(uiState, onClickReset = onClickReset, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) })
+    TableTop(modifier, uiState, onClickReset = onClickReset, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) })
 }
 
 @Composable
 fun TableTop(
+    modifier: Modifier = Modifier,
     uiState: GameUiState,
     onClickReset: () -> Unit,
     onClickDraw: () -> Unit,
@@ -112,19 +112,27 @@ fun TableTop(
         contentAlignment = Alignment.Center
     ) {
         ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
-        CashDisplay(modifier = Modifier.align(Alignment.BottomEnd), cash = uiState.cash)
+        CashDisplay(modifier = modifier.align(Alignment.BottomEnd), cash = uiState.cash)
         CommunityTemplate(uiState = uiState)
-        HoleCards(modifier = Modifier.align(Alignment.BottomCenter), player = uiState.players[0], handStrength = uiState.handStrength?.get(0) ?: "",
+
+        // Player indexes start at top left
+        HoleCards(modifier = modifier.align(Alignment.TopStart), player = uiState.players[0], handStrength = uiState.handStrength?.get(0) ?: "",
             isWinner = uiState.winningPlayerIds.contains(0), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = Modifier.align(Alignment.CenterStart), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.TopEnd), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "",
             isWinner = uiState.winningPlayerIds.contains(1), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = Modifier.align(Alignment.TopCenter), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.CenterEnd), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "",
             isWinner = uiState.winningPlayerIds.contains(2), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = Modifier.align(Alignment.CenterEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.BottomEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "",
             isWinner = uiState.winningPlayerIds.contains(3), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
+        )
+        HoleCards(modifier = modifier.align(Alignment.BottomStart), player = uiState.players[4], handStrength = uiState.handStrength?.get(4) ?: "",
+            isWinner = uiState.winningPlayerIds.contains(4), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
+        )
+        HoleCards(modifier = modifier.align(Alignment.CenterStart), player = uiState.players[5], handStrength = uiState.handStrength?.get(5) ?: "",
+            isWinner = uiState.winningPlayerIds.contains(5), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
     }
 }
@@ -156,7 +164,6 @@ fun CashDisplay(
     cash: Int,
     modifier: Modifier = Modifier
 ) {
-    var total by remember { mutableStateOf(0) }
 
     val cashCounter by animateIntAsState(
         targetValue = cash,
@@ -187,7 +194,13 @@ fun HoleCards(
     Box(
         modifier
             .padding(horizontal = 8.dp)
-            .offset(y = 4.dp)
+            .offset(x =
+            when (player.id) {
+                0, 4 -> 220.dp
+                1, 3 -> -(220).dp
+                else -> 0.dp
+            })
+//            .background(Color.Red)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
@@ -231,9 +244,8 @@ fun HoleCards(
                     }
                 }
             }
-
             PlayerLabel(
-                playerName = player.name,
+                player = player,
                 handStrength = handStrength,
                 isWinner = isWinner,
                 onClick = {
@@ -259,27 +271,26 @@ fun HoleCards(
 @Composable
 fun PlayerLabel(
     modifier: Modifier = Modifier,
-    playerName: String,
+    player: Player,
     handStrength: String,
     isWinner: Boolean,
     onClick: () -> Unit
 ) {
     ElevatedButton(
-        modifier = modifier
+        modifier = Modifier
             .width(160.dp)
             .height(40.dp)
-            .offset(y = (-20).dp)
+            .offset(y = -(16).dp)
             .shadow(elevation = 4.dp, shape = CircleShape),
         colors = ButtonDefaults.buttonColors(containerColor = DarkestFeltBlue),
         onClick = { onClick() },
 
     ) {
         Text(
-//            text = if (!handStrength.isNullOrBlank()) handStrength else playerName,
             text = when {
                 !handStrength.isNullOrBlank() && !isWinner -> handStrength
                 isWinner -> "$handStrength Wins!"
-                else -> playerName
+                else -> player.name
             },
             modifier = modifier,
             style = MaterialTheme.typography.labelLarge,
@@ -301,8 +312,8 @@ fun CommunityCards(
             var cardFace by remember { mutableStateOf(CardFace.Back) }
             FlipCard(
                 face = cardFace,
-                isWinner = if (communityCards.size == 5)
-                    getWinningCards(winningHands).contains(
+                isFaded = if (communityCards.size == 5)
+                    !getWinningCards(winningHands).contains(
                         communityCards[i]
                             .cardString.uppercase()
                     )

@@ -51,7 +51,7 @@ class MainViewModel @Inject constructor(
         repeat(3) { mainDeck.shuffle() }
     }
 
-    private fun createStartingPlayers(count: Int = STARTING_PLAYER_COUNT) {
+    private fun createStartingPlayers(count: Int = MAX_PLAYER_COUNT) {
         var playersToAdd = mutableListOf<Player>()
         for (i in 0 until count) {
             playersToAdd.add(
@@ -230,8 +230,7 @@ class MainViewModel @Inject constructor(
     }
 
     companion object {
-        private const val MAX_PLAYER_COUNT = 4
-        private const val STARTING_PLAYER_COUNT = 4
+        private const val MAX_PLAYER_COUNT = 6
         private const val MAX_COMMUNITY_COUNT = 5
 
         private val handStrengthMapToString = mapOf(
