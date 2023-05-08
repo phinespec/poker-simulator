@@ -1,8 +1,6 @@
 package com.phinespec.pokersim.utils
 
-import androidx.compose.ui.input.key.Key.Companion.Back
-
-enum class Phase {
+enum class Street {
     PREFLOP,
     FLOP,
     TURN,

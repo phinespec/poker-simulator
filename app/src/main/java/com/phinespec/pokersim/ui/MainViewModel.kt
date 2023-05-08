@@ -10,7 +10,7 @@ import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.model.playerNames
 import com.phinespec.pokersim.utils.HandValue
-import com.phinespec.pokersim.utils.Phase
+import com.phinespec.pokersim.utils.Street
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 
 
@@ -71,37 +72,10 @@ class MainViewModel @Inject constructor(
 
     fun drawFlop() {
         var cardsToAdd = mutableListOf<PlayingCard>()
-
-        repeat(3) { count ->
-            val topCard = mainDeck.removeFirst()
-            cardsToAdd.add(topCard)
-        }
-
-        _uiState.value = _uiState.value.copy(
-            gamePhase = Phase.FLOP,
-            communityCards = cardsToAdd,
-            drawCardButtonLabel = "Turn"
-        )
-    }
-
-    fun drawTurn() {
-        var cardsToAdd = uiState.value.communityCards
-
-        if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
-            cardsToAdd.add(mainDeck.removeFirst())
-
-            _uiState.value = _uiState.value.copy(
-                gamePhase = Phase.TURN,
-                communityCards = cardsToAdd,
-                drawCardButtonLabel = "River"
-            )
-        }
-    }
-
-    fun drawRiver() {
-        var cc = ""
         var pc = mutableListOf<String>()
+        var cc = ""
 
+        // Player cards
         _uiState.value.players.forEach { player ->
             val playerCards = player.holeCards
             var cs = ""
@@ -111,44 +85,72 @@ class MainViewModel @Inject constructor(
             pc.add(cs)
         }
 
+        // Community cards
+        mainDeck.subList(0,5).forEach { card ->
+            val cardString = card.cardString
+            cc += "$cardString,".uppercase()
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val response = getHandResults(cc, pc)
+            val handStrengths = mutableListOf<String>()
+            val winningHands = mutableListOf<String>()
+
+            withContext(Dispatchers.Main) {
+                response?.players?.forEach { player ->
+                    val handStrength = handStrengthMapToString.getOrDefault(player.result, "Other")
+                    handStrengths.add(handStrength)
+                }
+
+                response?.winners?.forEach { winner ->
+                    winningHands.add(winner.hand)
+                }
+
+                val winningIds = getWinningPlayerIds(winningHands)
+
+                repeat(3) { count ->
+                    val topCard = mainDeck.removeFirst()
+                    cardsToAdd.add(topCard)
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    street = Street.FLOP,
+                    communityCards = cardsToAdd,
+                    drawCardButtonLabel = "Turn",
+                    handStrength = handStrengths,
+                    winningHands = winningHands,
+                    winningPlayerIds = winningIds
+                )
+            }
+        }
+    }
+
+    fun drawTurn() {
         var cardsToAdd = uiState.value.communityCards
 
         if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
             cardsToAdd.add(mainDeck.removeFirst())
 
-            cardsToAdd.forEach { card ->
-                val cardString = card.cardString
-                cc += "$cardString,".uppercase()
-            }
+            _uiState.value = _uiState.value.copy(
+                street = Street.TURN,
+                communityCards = cardsToAdd,
+                drawCardButtonLabel = "River"
+            )
+        }
+    }
 
-            viewModelScope.launch(Dispatchers.IO) {
-                val response = getHandResults(cc, pc)
-                val handStrengths = mutableListOf<String>()
-                val winningHands = mutableListOf<String>()
+        fun drawRiver() {
+            var cardsToAdd = uiState.value.communityCards
 
-                withContext(Dispatchers.Main) {
-                    response?.players?.forEach { player ->
-                        val handStrength = handStrengthMapToString.getOrDefault(player.result, "Other")
-                        handStrengths.add(handStrength)
-                    }
+            if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
+                cardsToAdd.add(mainDeck.removeFirst())
 
-                    response?.winners?.forEach { winner ->
-                        winningHands.add(winner.hand)
-                    }
-
-                    val winningIds = getWinningPlayerIds(winningHands)
-
-                    _uiState.value = _uiState.value.copy(
-                        gamePhase = Phase.RIVER,
-                        communityCards = cardsToAdd,
-                        drawCardButtonLabel = "Next",
-                        handStrength = handStrengths,
-                        winningHands = winningHands,
-                        winningPlayerIds = winningIds
-                    )
-                    checkIfDidWin(response?.winners?.first()?.result)
-                }
-            }
+                _uiState.value = _uiState.value.copy(
+                    street = Street.RIVER,
+                    communityCards = cardsToAdd,
+                    drawCardButtonLabel = "Next",
+                )
+                checkIfDidWin(_uiState.value.handStrength?.first())
         }
     }
 
@@ -191,7 +193,7 @@ class MainViewModel @Inject constructor(
     fun placeBet(playerId: Int) {
         val bet = Bet.create(
             playerId = playerId,
-            gamePhase = _uiState.value.gamePhase,
+            street = _uiState.value.street,
             isLocked = true
         )
 
@@ -201,31 +203,38 @@ class MainViewModel @Inject constructor(
     }
 
     private fun checkIfDidWin(winningHand: String?) {
+        Timber.d("winningHand = $winningHand")
         _uiState.value.currentBet?.let { bet ->
             if (_uiState.value.winningPlayerIds.contains(bet.playerId)) {
                 addCash(getPayoutAmount(bet.amount, winningHand))
             } else {
-                subCash(getPayoutAmount(bet.amount))
+                subCash(getPayoutAmount(bet.amount, winningHand))
             }
         }
     }
 
     // Determine payout base on hand value
     private fun getPayoutAmount(betAmount: Int, handStrength: String? = null): Int {
+        Timber.d("handStrength => $handStrength")
         handStrength?.let {
             val multiplier = handStrengthMapToHandValue[it]?.multiplier
+            Timber.d("multiplier => $multiplier")
             multiplier?.let { mult ->
+                Timber.d("returning betAmount * multiplier")
                 return mult * betAmount
             }
         }
+        Timber.d("returning betAmount only")
         return betAmount
     }
 
     private fun addCash(amount: Int) {
+        Timber.d("addCash => $amount")
         _uiState.value = _uiState.value.copy(cash = _uiState.value.cash + amount)
     }
 
     private fun subCash(amount: Int) {
+        Timber.d("subCash => $amount")
         _uiState.value = _uiState.value.copy(cash = _uiState.value.cash - amount)
     }
 

@@ -32,7 +32,6 @@ import com.phinespec.pokersim.utils.CardFace
 @Composable
 fun FlipCard(
     face: CardFace = CardFace.Front,
-//    isWinner: Boolean = false,
     isFaded: Boolean = false,
     modifier: Modifier = Modifier
         .padding(horizontal = 2.dp),
@@ -52,18 +51,6 @@ fun FlipCard(
         )
     )
 
-//    val raisedValue by animateDpAsState(
-//        targetValue = if (animationPlayed) (-10).dp else 0.dp,
-//        animationSpec = tween()
-//    )
-
-    val fadeValue by animateFloatAsState(
-        targetValue = if (animationPlayed) 0.3f else 1f,
-        animationSpec = tween(
-            durationMillis = 2000
-        )
-    )
-
     LaunchedEffect(key1 = true) {
         animationPlayed = true
     }
@@ -71,7 +58,6 @@ fun FlipCard(
     Card(
         modifier = modifier
             .size(width = 60.dp, height = 90.dp)
-//            .offset(y = if (isWinner) raisedValue else 0.dp)
             .graphicsLayer { rotationY = rotation }
             .alpha(if (isFaded) 0.3f else 1.0f)
             .shadow(elevation = 5.dp, shape = CircleShape, false),

@@ -57,6 +57,7 @@ import com.phinespec.pokersim.ui.theme.DarkestFeltBlue
 import com.phinespec.pokersim.ui.theme.LightFeltBlue
 import com.phinespec.pokersim.ui.theme.PurpleGrey40
 import com.phinespec.pokersim.utils.CardFace
+import com.phinespec.pokersim.utils.Street
 import timber.log.Timber
 
 
@@ -116,22 +117,22 @@ fun TableTop(
         CommunityTemplate(uiState = uiState)
 
         // Player indexes start at top left
-        HoleCards(modifier = modifier.align(Alignment.TopStart), player = uiState.players[0], handStrength = uiState.handStrength?.get(0) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.TopStart), player = uiState.players[0], street = uiState.street, handStrength = uiState.handStrength?.get(0) ?: "",
             isWinner = uiState.winningPlayerIds.contains(0), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.TopEnd), player = uiState.players[1], handStrength = uiState.handStrength?.get(1) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.TopEnd), player = uiState.players[1], street = uiState.street, handStrength = uiState.handStrength?.get(1) ?: "",
             isWinner = uiState.winningPlayerIds.contains(1), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.CenterEnd), player = uiState.players[2], handStrength = uiState.handStrength?.get(2) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.CenterEnd), player = uiState.players[2], street = uiState.street, handStrength = uiState.handStrength?.get(2) ?: "",
             isWinner = uiState.winningPlayerIds.contains(2), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.BottomEnd), player = uiState.players[3], handStrength = uiState.handStrength?.get(3) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.BottomEnd), player = uiState.players[3], street = uiState.street, handStrength = uiState.handStrength?.get(3) ?: "",
             isWinner = uiState.winningPlayerIds.contains(3), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.BottomStart), player = uiState.players[4], handStrength = uiState.handStrength?.get(4) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.BottomStart), player = uiState.players[4], street = uiState.street, handStrength = uiState.handStrength?.get(4) ?: "",
             isWinner = uiState.winningPlayerIds.contains(4), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.CenterStart), player = uiState.players[5], handStrength = uiState.handStrength?.get(5) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.CenterStart), player = uiState.players[5], street = uiState.street, handStrength = uiState.handStrength?.get(5) ?: "",
             isWinner = uiState.winningPlayerIds.contains(5), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
     }
@@ -186,6 +187,7 @@ fun CashDisplay(
 fun HoleCards(
     modifier: Modifier = Modifier,
     player: Player,
+    street: Street,
     handStrength: String,
     isWinner: Boolean = false,
     betPlaced: Bet? = null,
@@ -224,7 +226,7 @@ fun HoleCards(
                     modifier = modifier.offset(y = 8.dp)
                 ) {
 
-                    FlipCard(isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
+                    FlipCard(isFaded = !isWinner && !handStrength.isNullOrBlank() && street == Street.RIVER, front = {
                         Image(
                             painter = painterResource(player.holeCards.first.image),
                             contentDescription = "",
@@ -233,7 +235,7 @@ fun HoleCards(
                     }) {
                         CardBack()
                     }
-                    FlipCard(isFaded = !isWinner && !handStrength.isNullOrBlank(), front = {
+                    FlipCard(isFaded = !isWinner && !handStrength.isNullOrBlank() && street == Street.RIVER, front = {
                         Image(
                             painter = painterResource(player.holeCards.second.image),
                             contentDescription = "",
@@ -246,6 +248,7 @@ fun HoleCards(
             }
             PlayerLabel(
                 player = player,
+                street = street,
                 handStrength = handStrength,
                 isWinner = isWinner,
                 onClick = {
@@ -272,6 +275,7 @@ fun HoleCards(
 fun PlayerLabel(
     modifier: Modifier = Modifier,
     player: Player,
+    street: Street,
     handStrength: String,
     isWinner: Boolean,
     onClick: () -> Unit
@@ -287,11 +291,14 @@ fun PlayerLabel(
 
     ) {
         Text(
-            text = when {
-                !handStrength.isNullOrBlank() && !isWinner -> handStrength
-                isWinner -> "$handStrength Wins!"
-                else -> player.name
-            },
+            text =
+            if (street == Street.RIVER) {
+                when {
+                    !handStrength.isNullOrBlank() && !isWinner -> handStrength
+                    isWinner -> "$handStrength Wins!"
+                    else -> player.name
+                }
+            } else  player.name ,
             modifier = modifier,
             style = MaterialTheme.typography.labelLarge,
             color = Color.White

@@ -4,7 +4,8 @@ package com.phinespec.pokersim.model
 class Player(
     val id: Int,
     val name: String,
-    val holeCards: Pair<PlayingCard, PlayingCard>
+    val holeCards: Pair<PlayingCard, PlayingCard>,
+    val handStrength: String = ""
 ) {
 
 
