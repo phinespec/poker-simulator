@@ -12,7 +12,7 @@ data class GameUiState(
     val communityCards: MutableList<PlayingCard> = mutableListOf(),
     val players: MutableList<Player> = mutableListOf(),
     val drawCardButtonLabel: String = "Flop",
-    val handStrength: List<String>? = null,
+//    val handStrength: List<String>? = null,
     val winningHands: List<String>? = null,
     val winningPlayerIds: List<Int> = emptyList()
 )

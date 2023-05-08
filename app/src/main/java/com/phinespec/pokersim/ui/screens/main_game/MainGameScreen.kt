@@ -117,22 +117,22 @@ fun TableTop(
         CommunityTemplate(uiState = uiState)
 
         // Player indexes start at top left
-        HoleCards(modifier = modifier.align(Alignment.TopStart), player = uiState.players[0], street = uiState.street, handStrength = uiState.handStrength?.get(0) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.TopStart), player = uiState.players[0], street = uiState.street, handStrength = uiState.players[0].handStrength,
             isWinner = uiState.winningPlayerIds.contains(0), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.TopEnd), player = uiState.players[1], street = uiState.street, handStrength = uiState.handStrength?.get(1) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.TopEnd), player = uiState.players[1], street = uiState.street, handStrength = uiState.players[1].handStrength,
             isWinner = uiState.winningPlayerIds.contains(1), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.CenterEnd), player = uiState.players[2], street = uiState.street, handStrength = uiState.handStrength?.get(2) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.CenterEnd), player = uiState.players[2], street = uiState.street, handStrength = uiState.players[2].handStrength,
             isWinner = uiState.winningPlayerIds.contains(2), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.BottomEnd), player = uiState.players[3], street = uiState.street, handStrength = uiState.handStrength?.get(3) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.BottomEnd), player = uiState.players[3], street = uiState.street, handStrength = uiState.players[3].handStrength,
             isWinner = uiState.winningPlayerIds.contains(3), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.BottomStart), player = uiState.players[4], street = uiState.street, handStrength = uiState.handStrength?.get(4) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.BottomStart), player = uiState.players[4], street = uiState.street, handStrength = uiState.players[4].handStrength,
             isWinner = uiState.winningPlayerIds.contains(4), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
-        HoleCards(modifier = modifier.align(Alignment.CenterStart), player = uiState.players[5], street = uiState.street, handStrength = uiState.handStrength?.get(5) ?: "",
+        HoleCards(modifier = modifier.align(Alignment.CenterStart), player = uiState.players[5], street = uiState.street, handStrength = uiState.players[5].handStrength,
             isWinner = uiState.winningPlayerIds.contains(5), onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, betPlaced = uiState.currentBet
         )
     }

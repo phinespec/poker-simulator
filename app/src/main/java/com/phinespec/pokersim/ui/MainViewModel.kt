@@ -97,9 +97,13 @@ class MainViewModel @Inject constructor(
             val winningHands = mutableListOf<String>()
 
             withContext(Dispatchers.Main) {
-                response?.players?.forEach { player ->
+                val players = _uiState.value.players
+                response?.players?.forEachIndexed { i, player ->
                     val handStrength = handStrengthMapToString.getOrDefault(player.result, "Other")
-                    handStrengths.add(handStrength)
+                    players[i] = players[i].copy(
+                        handStrength = handStrength
+                    )
+//                    handStrengths.add(handStrength)
                 }
 
                 response?.winners?.forEach { winner ->
@@ -117,7 +121,7 @@ class MainViewModel @Inject constructor(
                     street = Street.FLOP,
                     communityCards = cardsToAdd,
                     drawCardButtonLabel = "Turn",
-                    handStrength = handStrengths,
+                    players = players,
                     winningHands = winningHands,
                     winningPlayerIds = winningIds
                 )
@@ -150,7 +154,7 @@ class MainViewModel @Inject constructor(
                     communityCards = cardsToAdd,
                     drawCardButtonLabel = "Next",
                 )
-                checkIfDidWin(_uiState.value.handStrength?.first())
+                checkIfDidWin(_uiState.value.players[_uiState.value.winningPlayerIds.first()].handStrength)
         }
     }
 
@@ -256,16 +260,16 @@ class MainViewModel @Inject constructor(
         )
 
         private val handStrengthMapToHandValue = mapOf<String, HandValue>(
-            "high_card" to HandValue.HIGH_CARD,
-            "pair" to HandValue.PAIR,
-            "two_pair" to HandValue.TWO_PAIR,
-            "three_of_kind" to HandValue.THREE_OF_KIND,
-            "straight" to HandValue.STRAIGHT,
-            "flush" to HandValue.FLUSH,
-            "full_house" to HandValue.FULL_HOUSE,
-            "four_of_kind" to HandValue.FOUR_OF_KIND,
-            "straight_flush" to HandValue.STRAIGHT_FLUSH,
-            "royal_flush" to HandValue.ROYAL_FLUSH
+            "High Card" to HandValue.HIGH_CARD,
+            "Pair" to HandValue.PAIR,
+            "2 Pair" to HandValue.TWO_PAIR,
+            "3 of a Kind" to HandValue.THREE_OF_KIND,
+            "Straight" to HandValue.STRAIGHT,
+            "Flush" to HandValue.FLUSH,
+            "Full House" to HandValue.FULL_HOUSE,
+            "4 of a Kind" to HandValue.FOUR_OF_KIND,
+            "Straight Flush" to HandValue.STRAIGHT_FLUSH,
+            "Royal Flush" to HandValue.ROYAL_FLUSH
         )
     }
 }

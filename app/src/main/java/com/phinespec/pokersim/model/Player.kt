@@ -1,7 +1,7 @@
 package com.phinespec.pokersim.model
 
 
-class Player(
+data class Player(
     val id: Int,
     val name: String,
     val holeCards: Pair<PlayingCard, PlayingCard>,
