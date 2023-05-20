@@ -36,3 +36,8 @@ enum class CardFace(val angle: Float) {
 
     abstract val next: CardFace
 }
+
+sealed class AlertType {
+    data class Basic(val message: String) : AlertType()
+    data class GameOver(val message: String = "Out of Cash!!"): AlertType()
+}

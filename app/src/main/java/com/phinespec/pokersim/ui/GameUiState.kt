@@ -3,6 +3,7 @@ package com.phinespec.pokersim.ui
 import com.phinespec.pokersim.model.Bet
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
+import com.phinespec.pokersim.utils.AlertType
 import com.phinespec.pokersim.utils.Street
 
 data class GameUiState(
@@ -12,7 +13,13 @@ data class GameUiState(
     val communityCards: MutableList<PlayingCard> = mutableListOf(),
     val players: MutableList<Player> = mutableListOf(),
     val drawCardButtonLabel: String = "Flop",
-//    val handStrength: List<String>? = null,
     val winningHands: List<String>? = null,
-    val winningPlayerIds: List<Int> = emptyList()
+    val winningPlayerIds: List<Int> = emptyList(),
+    val alert: AlertWrapper? = null
+)
+
+
+data class AlertWrapper(
+    val shouldShow: Boolean,
+    val alertType: AlertType,
 )

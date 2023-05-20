@@ -9,6 +9,7 @@ import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.model.playerNames
+import com.phinespec.pokersim.utils.AlertType
 import com.phinespec.pokersim.utils.HandValue
 import com.phinespec.pokersim.utils.Street
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -187,9 +188,10 @@ class MainViewModel @Inject constructor(
 
     private fun getHoleCards(): Pair<PlayingCard, PlayingCard> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
 
-    fun resetGame() {
+    fun resetGame(hard: Boolean = false) {
+        Timber.d("resetGame called")
         mainDeck.clear()
-        _uiState.value = GameUiState(cash = _uiState.value.cash)
+        _uiState.value = GameUiState(cash = if (hard) STARTING_CASH else _uiState.value.cash)
         buildDeck()
         createStartingPlayers()
     }
@@ -238,13 +240,30 @@ class MainViewModel @Inject constructor(
     }
 
     private fun subCash(amount: Int) {
+        if ((_uiState.value.cash - amount) <= 0) {
+            gameOver()
+        }
         Timber.d("subCash => $amount")
         _uiState.value = _uiState.value.copy(cash = _uiState.value.cash - amount)
+    }
+
+    private fun gameOver() {
+        showDialog(
+            AlertWrapper(
+                true,
+                AlertType.GameOver(),
+            )
+        )
+    }
+
+    fun showDialog(alert: AlertWrapper) {
+        _uiState.value = _uiState.value.copy(alert = alert)
     }
 
     companion object {
         private const val MAX_PLAYER_COUNT = 6
         private const val MAX_COMMUNITY_COUNT = 5
+        private const val STARTING_CASH = 50
 
         private val handStrengthMapToString = mapOf(
             "high_card" to "High Card",

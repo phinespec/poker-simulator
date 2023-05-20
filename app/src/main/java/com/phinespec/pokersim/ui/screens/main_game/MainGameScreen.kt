@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
@@ -43,6 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,8 +59,10 @@ import com.phinespec.pokersim.ui.MainViewModel
 import com.phinespec.pokersim.ui.screens.main_game.FlipCard
 import com.phinespec.pokersim.ui.theme.DarkFeltBlue
 import com.phinespec.pokersim.ui.theme.DarkestFeltBlue
+import com.phinespec.pokersim.ui.theme.DialogBackground
 import com.phinespec.pokersim.ui.theme.LightFeltBlue
 import com.phinespec.pokersim.ui.theme.PurpleGrey40
+import com.phinespec.pokersim.utils.AlertType
 import com.phinespec.pokersim.utils.CardFace
 import com.phinespec.pokersim.utils.Street
 import timber.log.Timber
@@ -69,22 +76,60 @@ fun MainGameScreen(
 
     val gameUiState by viewModel.uiState.collectAsState()
 
-    GameLayout(
-        uiState = gameUiState,
-        onClickReset = { viewModel.resetGame() },
-        onClickDraw = {
-            when (viewModel.uiState.value.drawCardButtonLabel) {
-                "Flop" -> { viewModel.drawFlop() }
-                "Turn" -> { viewModel.drawTurn() }
-                "River" -> { viewModel.drawRiver() }
-                else -> { viewModel.resetGame() }
+    Box {
+        GameLayout(
+            uiState = gameUiState,
+            onClickReset = { viewModel.resetGame() },
+            onClickDraw = {
+                when (viewModel.uiState.value.drawCardButtonLabel) {
+                    "Flop" -> { viewModel.drawFlop() }
+                    "Turn" -> { viewModel.drawTurn() }
+                    "River" -> { viewModel.drawRiver() }
+                    else -> { viewModel.resetGame() }
+                }
+            },
+            onClickPlayerLabel = {playerId ->
+                viewModel.placeBet(playerId)
             }
-        },
-        onClickPlayerLabel = {playerId ->
-            viewModel.placeBet(playerId)
+        )
+        // Alerts
+        if (gameUiState.alert != null) {
+            gameUiState.alert?.let { alertWrapper ->
+                AlertDialog(
+                    shape = MaterialTheme.shapes.large,
+                    containerColor = DialogBackground,
+                    text = { Text(
+                        text = getAlertMessage(alertWrapper.alertType),
+                        textAlign = TextAlign.Center,
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.fillMaxWidth().alpha(.75f)
+                    ) },
+                    onDismissRequest = { viewModel.resetGame(true) },
+                    confirmButton = {
+                        Button(
+                            onClick = { viewModel.resetGame(true) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .align(Alignment.Center)
+                        ) {
+                            Text("Reset")
+                        }
+                    }
+                )
+            }
         }
-    )
+    }
 
+}
+
+private fun getAlertMessage(alertType: AlertType): String {
+    return when (alertType) {
+        is AlertType.Basic -> alertType.message
+        is AlertType.GameOver -> alertType.message
+    }
 }
 
 @Composable
@@ -113,7 +158,7 @@ fun TableTop(
         contentAlignment = Alignment.Center
     ) {
         ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
-        CashDisplay(modifier = modifier.align(Alignment.BottomEnd), cash = uiState.cash)
+        CashDisplay(modifier = modifier.align(Alignment.BottomEnd), uiState = uiState)
         CommunityTemplate(uiState = uiState)
 
         // Player indexes start at top left
@@ -162,12 +207,12 @@ fun CommunityTemplate(
 
 @Composable
 fun CashDisplay(
-    cash: Int,
+    uiState: GameUiState,
     modifier: Modifier = Modifier
 ) {
 
     val cashCounter by animateIntAsState(
-        targetValue = cash,
+        targetValue = uiState.cash,
         animationSpec = tween(
             delayMillis = 500,
             durationMillis = 1000,
@@ -177,7 +222,7 @@ fun CashDisplay(
     Text(
         modifier = modifier
             .padding(16.dp),
-        text = "$$cashCounter",
+        text = "$${if (uiState.street == Street.PREFLOP) uiState.cash else cashCounter}",
         style = MaterialTheme.typography.displaySmall,
         color = Color.White
     )
@@ -196,12 +241,14 @@ fun HoleCards(
     Box(
         modifier
             .padding(horizontal = 8.dp)
-            .offset(x =
-            when (player.id) {
-                0, 4 -> 220.dp
-                1, 3 -> -(220).dp
-                else -> 0.dp
-            })
+            .offset(
+                x =
+                when (player.id) {
+                    0, 4 -> 220.dp
+                    1, 3 -> -(220).dp
+                    else -> 0.dp
+                }
+            )
 //            .background(Color.Red)
     ) {
         Column(

@@ -14,3 +14,5 @@ val PokerGreen = Color(0xFF337357)
 val LightFeltBlue = Color(0xFFB4DFE9)
 val DarkFeltBlue = Color(0xFF5594B0)
 val DarkestFeltBlue = Color(0xFF335462)
+
+val DialogBackground = Color(0x80C0F3F3)
