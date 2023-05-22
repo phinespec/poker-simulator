@@ -40,4 +40,5 @@ enum class CardFace(val angle: Float) {
 sealed class AlertType {
     data class Basic(val message: String) : AlertType()
     data class GameOver(val message: String = "Out of Cash!!"): AlertType()
+    data class Timeout(val message: String = "Out of Time!!"): AlertType()
 }

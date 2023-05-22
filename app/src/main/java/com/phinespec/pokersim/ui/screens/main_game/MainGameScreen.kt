@@ -56,6 +56,7 @@ import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.ui.GameUiState
 import com.phinespec.pokersim.ui.MainViewModel
+import com.phinespec.pokersim.ui.screens.main_game.CountdownBar
 import com.phinespec.pokersim.ui.screens.main_game.FlipCard
 import com.phinespec.pokersim.ui.theme.DarkFeltBlue
 import com.phinespec.pokersim.ui.theme.DarkestFeltBlue
@@ -90,9 +91,11 @@ fun MainGameScreen(
             },
             onClickPlayerLabel = {playerId ->
                 viewModel.placeBet(playerId)
-            }
+            },
+            onTimeout = { viewModel.timeout() }
         )
-        // Alerts
+
+        // Show alerts
         if (gameUiState.alert != null) {
             gameUiState.alert?.let { alertWrapper ->
                 AlertDialog(
@@ -104,7 +107,9 @@ fun MainGameScreen(
                         color = Color.White,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.fillMaxWidth().alpha(.75f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .alpha(.75f)
                     ) },
                     onDismissRequest = { viewModel.resetGame(true) },
                     confirmButton = {
@@ -129,6 +134,7 @@ private fun getAlertMessage(alertType: AlertType): String {
     return when (alertType) {
         is AlertType.Basic -> alertType.message
         is AlertType.GameOver -> alertType.message
+        is AlertType.Timeout -> alertType.message
     }
 }
 
@@ -138,9 +144,10 @@ fun GameLayout(
     onClickReset: () -> Unit,
     onClickDraw: () -> Unit,
     modifier: Modifier = Modifier,
-    onClickPlayerLabel: (Int) -> Unit
+    onClickPlayerLabel: (Int) -> Unit,
+    onTimeout: () -> Unit
 ) {
-    TableTop(modifier, uiState, onClickReset = onClickReset, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) })
+    TableTop(modifier, uiState, onClickReset = onClickReset, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, onTimeout = { onTimeout() })
 }
 
 @Composable
@@ -149,7 +156,8 @@ fun TableTop(
     uiState: GameUiState,
     onClickReset: () -> Unit,
     onClickDraw: () -> Unit,
-    onClickPlayerLabel: (Int) -> Unit
+    onClickPlayerLabel: (Int) -> Unit,
+    onTimeout: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -157,7 +165,7 @@ fun TableTop(
             .background(DarkFeltBlue),
         contentAlignment = Alignment.Center
     ) {
-        ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel)
+        ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel, onTimeout = { onTimeout() })
         CashDisplay(modifier = modifier.align(Alignment.BottomEnd), uiState = uiState)
         CommunityTemplate(uiState = uiState)
 
@@ -249,7 +257,6 @@ fun HoleCards(
                     else -> 0.dp
                 }
             )
-//            .background(Color.Red)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
@@ -414,46 +421,42 @@ private fun getWinningCards(winningHands: List<String>): String {
 fun ButtonRow(
     modifier: Modifier = Modifier,
     onClickDraw: () -> Unit,
-    onClickReset: () -> Unit,
+    onTimeout: () -> Unit,
     drawButtonLabel: String
 ) {
     Row(
         modifier = modifier
             .offset(x = -(320).dp, y = 120.dp)
     ) {
-        DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel)
+        DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel, onTimeout = { onTimeout() })
     }
 }
 
 @Composable
-fun ResetButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
-    ElevatedButton(
-        onClick = { onClick() },
-        modifier = modifier
-            .shadow(elevation = 5.dp, shape = CircleShape)
-    ) {
-        Text("Reset")
-    }
-}
-@Composable
 fun DrawCardButton(
     onClickDraw: () -> Unit,
     modifier: Modifier = Modifier,
-    buttonLabel: String
+    buttonLabel: String,
+    onTimeout: () -> Unit
 ) {
-    ElevatedButton(
-        onClick = { onClickDraw() },
-        colors = ButtonDefaults.buttonColors(containerColor = DarkestFeltBlue),
-        modifier = modifier
-            .border(width = 2.dp, color = LightFeltBlue, shape = CircleShape)
-            .height(80.dp)
-            .width(100.dp)
-            .shadow(elevation = 5.dp, shape = CircleShape)
-    ) {
-        Text(
-            buttonLabel.uppercase(),
-            style = MaterialTheme.typography.bodyLarge
-        )
+    Box {
+        ElevatedButton(
+            onClick = { onClickDraw() },
+            colors = ButtonDefaults.buttonColors(containerColor = DarkestFeltBlue),
+            modifier = modifier
+                .border(width = 8.dp, color = LightFeltBlue, shape = CircleShape)
+                .height(100.dp)
+                .width(100.dp)
+                .shadow(elevation = 5.dp, shape = CircleShape)
+        ) {
+            Text(
+                buttonLabel.uppercase(),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+        CountdownBar { result ->
+            onTimeout()
+        }
     }
 }
 
@@ -461,5 +464,5 @@ fun DrawCardButton(
 @Preview(showBackground = true, device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape")
 @Composable
 fun TablePreview() {
-    DrawCardButton(onClickDraw = { }, buttonLabel = "NEXT")
+    DrawCardButton(onClickDraw = { }, buttonLabel = "NEXT", onTimeout = {})
 }

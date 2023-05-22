@@ -256,6 +256,15 @@ class MainViewModel @Inject constructor(
         )
     }
 
+    fun timeout() {
+        showDialog(
+            AlertWrapper(
+                true,
+                AlertType.Timeout()
+            )
+        )
+    }
+
     fun showDialog(alert: AlertWrapper) {
         _uiState.value = _uiState.value.copy(alert = alert)
     }
