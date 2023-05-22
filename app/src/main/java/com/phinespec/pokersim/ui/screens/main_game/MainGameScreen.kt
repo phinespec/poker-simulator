@@ -165,7 +165,7 @@ fun TableTop(
             .background(DarkFeltBlue),
         contentAlignment = Alignment.Center
     ) {
-        ButtonRow(onClickReset = { onClickReset() }, onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel, onTimeout = { onTimeout() })
+        ButtonRow(onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel, onTimeout = { onTimeout() })
         CashDisplay(modifier = modifier.align(Alignment.BottomEnd), uiState = uiState)
         CommunityTemplate(uiState = uiState)
 
