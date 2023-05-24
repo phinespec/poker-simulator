@@ -20,7 +20,7 @@ enum class HandValue(val multiplier: Int = 1) {
     ROYAL_FLUSH(10);
 
     override fun toString(): String {
-        return this.name.toString().lowercase()
+        return this.name.lowercase()
     }
 }
 
@@ -41,4 +41,10 @@ sealed class AlertType {
     data class Basic(val message: String) : AlertType()
     data class GameOver(val message: String = "Out of Cash!!"): AlertType()
     data class Timeout(val message: String = "Out of Time!!"): AlertType()
+}
+
+sealed class UIEvent {
+    data class Draw(val street: Street) : UIEvent()
+    data class ResetGame(val isHard: Boolean = false) : UIEvent()
+    data class PlaceBet(val playerId: Int) : UIEvent()
 }

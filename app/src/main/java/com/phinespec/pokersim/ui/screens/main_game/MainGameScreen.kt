@@ -66,6 +66,7 @@ import com.phinespec.pokersim.ui.theme.PurpleGrey40
 import com.phinespec.pokersim.utils.AlertType
 import com.phinespec.pokersim.utils.CardFace
 import com.phinespec.pokersim.utils.Street
+import com.phinespec.pokersim.utils.UIEvent
 import timber.log.Timber
 
 
@@ -80,17 +81,16 @@ fun MainGameScreen(
     Box {
         GameLayout(
             uiState = gameUiState,
-            onClickReset = { viewModel.resetGame() },
             onClickDraw = {
                 when (viewModel.uiState.value.drawCardButtonLabel) {
-                    "Flop" -> { viewModel.drawFlop() }
-                    "Turn" -> { viewModel.drawTurn() }
-                    "River" -> { viewModel.drawRiver() }
-                    else -> { viewModel.resetGame() }
+                    "Flop" -> { viewModel.onEvent(UIEvent.Draw(Street.PREFLOP)) }
+                    "Turn" -> { viewModel.onEvent(UIEvent.Draw(Street.FLOP)) }
+                    "River" -> { viewModel.onEvent(UIEvent.Draw(Street.TURN)) }
+                    else -> { viewModel.onEvent(UIEvent.ResetGame()) }
                 }
             },
-            onClickPlayerLabel = {playerId ->
-                viewModel.placeBet(playerId)
+            onClickPlayerLabel = { playerId ->
+                viewModel.onEvent(UIEvent.PlaceBet(playerId))
             },
             onTimeout = { viewModel.timeout() }
         )
@@ -111,10 +111,10 @@ fun MainGameScreen(
                             .fillMaxWidth()
                             .alpha(.75f)
                     ) },
-                    onDismissRequest = { viewModel.resetGame(true) },
+                    onDismissRequest = { viewModel.onEvent(UIEvent.ResetGame(true)) },
                     confirmButton = {
                         Button(
-                            onClick = { viewModel.resetGame(true) },
+                            onClick = { viewModel.onEvent(UIEvent.ResetGame(true)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
@@ -141,20 +141,18 @@ private fun getAlertMessage(alertType: AlertType): String {
 @Composable
 fun GameLayout(
     uiState: GameUiState,
-    onClickReset: () -> Unit,
     onClickDraw: () -> Unit,
     modifier: Modifier = Modifier,
     onClickPlayerLabel: (Int) -> Unit,
     onTimeout: () -> Unit
 ) {
-    TableTop(modifier, uiState, onClickReset = onClickReset, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, onTimeout = { onTimeout() })
+    TableTop(modifier, uiState, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, onTimeout = { onTimeout() })
 }
 
 @Composable
 fun TableTop(
     modifier: Modifier = Modifier,
     uiState: GameUiState,
-    onClickReset: () -> Unit,
     onClickDraw: () -> Unit,
     onClickPlayerLabel: (Int) -> Unit,
     onTimeout: () -> Unit

@@ -12,6 +12,7 @@ import com.phinespec.pokersim.model.playerNames
 import com.phinespec.pokersim.utils.AlertType
 import com.phinespec.pokersim.utils.HandValue
 import com.phinespec.pokersim.utils.Street
+import com.phinespec.pokersim.utils.UIEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,20 @@ class MainViewModel @Inject constructor(
 
     init {
         resetGame()
+    }
+
+    fun onEvent(event: UIEvent) {
+        when (event) {
+            is UIEvent.Draw -> {
+                when (event.street) {
+                    Street.PREFLOP -> drawFlop()
+                    Street.FLOP -> drawTurn()
+                    else -> drawRiver()
+                }
+            }
+            is UIEvent.ResetGame -> resetGame(event.isHard)
+            is UIEvent.PlaceBet -> placeBet(event.playerId)
+        }
     }
 
     suspend fun getHandResults(cc: String, pc: List<String>): HandStrengthResponseDto? {
@@ -188,7 +203,7 @@ class MainViewModel @Inject constructor(
 
     private fun getHoleCards(): Pair<PlayingCard, PlayingCard> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
 
-    fun resetGame(hard: Boolean = false) {
+    private fun resetGame(hard: Boolean = false) {
         Timber.d("resetGame called")
         mainDeck.clear()
         _uiState.value = GameUiState(cash = if (hard) STARTING_CASH else _uiState.value.cash)
@@ -196,7 +211,7 @@ class MainViewModel @Inject constructor(
         createStartingPlayers()
     }
 
-    fun placeBet(playerId: Int) {
+    private fun placeBet(playerId: Int) {
         val bet = Bet.create(
             playerId = playerId,
             street = _uiState.value.street,
