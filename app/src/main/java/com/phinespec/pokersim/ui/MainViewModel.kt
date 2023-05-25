@@ -1,5 +1,8 @@
 package com.phinespec.pokersim.ui
 
+import android.os.CountDownTimer
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.phinespec.pokersim.data.remote.HandStrengthResponseDto
@@ -8,7 +11,6 @@ import com.phinespec.pokersim.model.Bet
 import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
-import com.phinespec.pokersim.model.playerNames
 import com.phinespec.pokersim.utils.AlertType
 import com.phinespec.pokersim.utils.HandValue
 import com.phinespec.pokersim.utils.Street
@@ -30,10 +32,17 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var mainDeck = mutableListOf<PlayingCard>()
+    private var timer: CountDownTimer? = null
 
     // Observables
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+
+    private val _isTimerRunning = MutableLiveData(false)
+    val isTimerRunning: LiveData<Boolean> = _isTimerRunning
+
+    private val _seconds = MutableStateFlow(COUNTDOWN_START_TIME_SECONDS)
+    val seconds: StateFlow<Int> = _seconds.asStateFlow()
 
     init {
         resetGame()
@@ -74,7 +83,6 @@ class MainViewModel @Inject constructor(
             playersToAdd.add(
                 Player(
                     id = i,
-                    name = getRandomName(),
                     holeCards = getHoleCards()
                 )
             )
@@ -199,16 +207,50 @@ class MainViewModel @Inject constructor(
         return winningIds
     }
 
-    private fun getRandomName(): String = playerNames.random()
-
     private fun getHoleCards(): Pair<PlayingCard, PlayingCard> = Pair(mainDeck.removeFirst(), mainDeck.removeFirst())
 
-    private fun resetGame(hard: Boolean = false) {
-        Timber.d("resetGame called")
+    private fun resetGame(isHard: Boolean = false) {
+        startTimer()
         mainDeck.clear()
-        _uiState.value = GameUiState(cash = if (hard) STARTING_CASH else _uiState.value.cash)
+        _uiState.value = GameUiState(cash = if (isHard) STARTING_CASH else _uiState.value.cash)
         buildDeck()
         createStartingPlayers()
+    }
+
+    private fun startTimer(millis: Long = COUNTDOWN_START_TIME_LONG) {
+        if (timer == null) {
+            _seconds.value = (millis / 1000).toInt()
+            Timber.d("countDownTimer started...")
+            timer = object: CountDownTimer(millis, COUNTDOWN_INTERVAL) {
+                override fun onTick(millisUntilFinished: Long) {
+                    _seconds.value --
+                    Timber.d("time remaining => ${_seconds.value}")
+                }
+
+                override fun onFinish() {
+                    Timber.d("** timer finished **")
+                    stopTimer()
+                    timeout()
+                }
+
+            }.start()
+        }
+    }
+
+    private fun stopTimer() {
+        timer?.cancel()
+        timer = null
+        _seconds.value = COUNTDOWN_START_TIME_SECONDS
+    }
+
+    private fun updateTimer() {
+        if (timer != null) {
+            val millis = _seconds.value * COUNTDOWN_INTERVAL
+            stopTimer()
+            startTimer(millis)
+        } else {
+            startTimer()
+        }
     }
 
     private fun placeBet(playerId: Int) {
@@ -217,17 +259,16 @@ class MainViewModel @Inject constructor(
             street = _uiState.value.street,
             isLocked = true
         )
-
         _uiState.value = _uiState.value.copy(
             currentBet = bet
         )
     }
 
     private fun checkIfDidWin(winningHand: String?) {
-        Timber.d("winningHand = $winningHand")
         _uiState.value.currentBet?.let { bet ->
             if (_uiState.value.winningPlayerIds.contains(bet.playerId)) {
                 addCash(getPayoutAmount(bet.amount, winningHand))
+                addTime(10)
             } else {
                 subCash(getPayoutAmount(bet.amount, winningHand))
             }
@@ -236,21 +277,16 @@ class MainViewModel @Inject constructor(
 
     // Determine payout base on hand value
     private fun getPayoutAmount(betAmount: Int, handStrength: String? = null): Int {
-        Timber.d("handStrength => $handStrength")
         handStrength?.let {
             val multiplier = handStrengthMapToHandValue[it]?.multiplier
-            Timber.d("multiplier => $multiplier")
             multiplier?.let { mult ->
-                Timber.d("returning betAmount * multiplier")
                 return mult * betAmount
             }
         }
-        Timber.d("returning betAmount only")
         return betAmount
     }
 
     private fun addCash(amount: Int) {
-        Timber.d("addCash => $amount")
         _uiState.value = _uiState.value.copy(cash = _uiState.value.cash + amount)
     }
 
@@ -262,7 +298,14 @@ class MainViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(cash = _uiState.value.cash - amount)
     }
 
+    private fun addTime(seconds: Int) {
+        Timber.d("$seconds seconds added!!")
+        _seconds.value += seconds
+        updateTimer()
+    }
+
     private fun gameOver() {
+        stopTimer()
         showDialog(
             AlertWrapper(
                 true,
@@ -272,6 +315,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun timeout() {
+        stopTimer()
         showDialog(
             AlertWrapper(
                 true,
@@ -288,6 +332,9 @@ class MainViewModel @Inject constructor(
         private const val MAX_PLAYER_COUNT = 6
         private const val MAX_COMMUNITY_COUNT = 5
         private const val STARTING_CASH = 50
+        private const val COUNTDOWN_START_TIME_SECONDS = 30
+        private const val COUNTDOWN_START_TIME_LONG = 30_000L
+        private const val COUNTDOWN_INTERVAL = 1000L // one second
 
         private val handStrengthMapToString = mapOf(
             "high_card" to "High Card",

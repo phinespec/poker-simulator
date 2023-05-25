@@ -72,11 +72,11 @@ import timber.log.Timber
 
 @Composable
 fun MainGameScreen(
-    modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel()
 ) {
 
     val gameUiState by viewModel.uiState.collectAsState()
+    val seconds = viewModel.seconds.collectAsState()
 
     Box {
         GameLayout(
@@ -92,7 +92,7 @@ fun MainGameScreen(
             onClickPlayerLabel = { playerId ->
                 viewModel.onEvent(UIEvent.PlaceBet(playerId))
             },
-            onTimeout = { viewModel.timeout() }
+            seconds = seconds.value
         )
 
         // Show alerts
@@ -111,7 +111,7 @@ fun MainGameScreen(
                             .fillMaxWidth()
                             .alpha(.75f)
                     ) },
-                    onDismissRequest = { viewModel.onEvent(UIEvent.ResetGame(true)) },
+                    onDismissRequest = {  },
                     confirmButton = {
                         Button(
                             onClick = { viewModel.onEvent(UIEvent.ResetGame(true)) },
@@ -144,9 +144,9 @@ fun GameLayout(
     onClickDraw: () -> Unit,
     modifier: Modifier = Modifier,
     onClickPlayerLabel: (Int) -> Unit,
-    onTimeout: () -> Unit
+    seconds: Int
 ) {
-    TableTop(modifier, uiState, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, onTimeout = { onTimeout() })
+    TableTop(modifier, uiState, onClickDraw = onClickDraw, onClickPlayerLabel = { playerId -> onClickPlayerLabel(playerId) }, seconds = seconds)
 }
 
 @Composable
@@ -155,7 +155,7 @@ fun TableTop(
     uiState: GameUiState,
     onClickDraw: () -> Unit,
     onClickPlayerLabel: (Int) -> Unit,
-    onTimeout: () -> Unit
+    seconds: Int
 ) {
     Box(
         modifier = Modifier
@@ -163,7 +163,7 @@ fun TableTop(
             .background(DarkFeltBlue),
         contentAlignment = Alignment.Center
     ) {
-        ButtonRow(onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel, onTimeout = { onTimeout() })
+        ButtonRow(onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel, seconds = seconds)
         CashDisplay(modifier = modifier.align(Alignment.BottomEnd), uiState = uiState)
         CommunityTemplate(uiState = uiState)
 
@@ -299,7 +299,6 @@ fun HoleCards(
                 }
             }
             PlayerLabel(
-                player = player,
                 street = street,
                 handStrength = handStrength,
                 isWinner = isWinner,
@@ -326,7 +325,6 @@ fun HoleCards(
 @Composable
 fun PlayerLabel(
     modifier: Modifier = Modifier,
-    player: Player,
     street: Street,
     handStrength: String,
     isWinner: Boolean,
@@ -348,9 +346,9 @@ fun PlayerLabel(
                 when {
                     !handStrength.isNullOrBlank() && !isWinner -> handStrength
                     isWinner -> "$handStrength Wins!"
-                    else -> player.name
+                    else -> "Lock in Bet"
                 }
-            } else  player.name ,
+            } else  "Lock in Bet",
             modifier = modifier,
             style = MaterialTheme.typography.labelLarge,
             color = Color.White
@@ -419,14 +417,14 @@ private fun getWinningCards(winningHands: List<String>): String {
 fun ButtonRow(
     modifier: Modifier = Modifier,
     onClickDraw: () -> Unit,
-    onTimeout: () -> Unit,
-    drawButtonLabel: String
+    drawButtonLabel: String,
+    seconds: Int
 ) {
     Row(
         modifier = modifier
             .offset(x = -(320).dp, y = 120.dp)
     ) {
-        DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel, onTimeout = { onTimeout() })
+        DrawCardButton(onClickDraw = { onClickDraw() }, buttonLabel = drawButtonLabel, seconds = seconds)
     }
 }
 
@@ -435,7 +433,7 @@ fun DrawCardButton(
     onClickDraw: () -> Unit,
     modifier: Modifier = Modifier,
     buttonLabel: String,
-    onTimeout: () -> Unit
+    seconds: Int
 ) {
     Box {
         ElevatedButton(
@@ -452,15 +450,15 @@ fun DrawCardButton(
                 style = MaterialTheme.typography.bodyLarge
             )
         }
-        CountdownBar { result ->
-            onTimeout()
-        }
+        CountdownBar(seconds = seconds)
     }
 }
+
+private const val PLAYER_LABEL_DEFAULT = "Place Bet"
 
 
 @Preview(showBackground = true, device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape")
 @Composable
 fun TablePreview() {
-    DrawCardButton(onClickDraw = { }, buttonLabel = "NEXT", onTimeout = {})
+//    DrawCardButton(onClickDraw = { }, buttonLabel = "NEXT", onTimeout = {})
 }
