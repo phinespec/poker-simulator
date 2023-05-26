@@ -56,6 +56,7 @@ import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.ui.GameUiState
 import com.phinespec.pokersim.ui.MainViewModel
+import com.phinespec.pokersim.ui.screens.main_game.BonusText
 import com.phinespec.pokersim.ui.screens.main_game.CountdownBar
 import com.phinespec.pokersim.ui.screens.main_game.FlipCard
 import com.phinespec.pokersim.ui.theme.DarkFeltBlue
@@ -64,6 +65,7 @@ import com.phinespec.pokersim.ui.theme.DialogBackground
 import com.phinespec.pokersim.ui.theme.LightFeltBlue
 import com.phinespec.pokersim.ui.theme.PurpleGrey40
 import com.phinespec.pokersim.utils.AlertType
+import com.phinespec.pokersim.utils.Bonus
 import com.phinespec.pokersim.utils.CardFace
 import com.phinespec.pokersim.utils.Street
 import com.phinespec.pokersim.utils.UIEvent
@@ -165,6 +167,19 @@ fun TableTop(
     ) {
         ButtonRow(onClickDraw = { onClickDraw() }, drawButtonLabel = uiState.drawCardButtonLabel, seconds = seconds)
         CashDisplay(modifier = modifier.align(Alignment.BottomEnd), uiState = uiState)
+        if (uiState.bonus != null) {
+            BonusText(
+                text = when (uiState.bonus) {
+                    is Bonus.Time -> {
+                        "+${uiState.bonus.seconds}s"
+                    }
+                    else -> ""
+                },
+                modifier = modifier
+                    .align(Alignment.BottomStart)
+                    .offset(x = 76.dp, y = -(40.dp)),
+            )
+        }
         CommunityTemplate(uiState = uiState)
 
         // Player indexes start at top left

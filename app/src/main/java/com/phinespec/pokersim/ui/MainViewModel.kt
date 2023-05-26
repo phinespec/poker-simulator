@@ -12,6 +12,7 @@ import com.phinespec.pokersim.model.Deck
 import com.phinespec.pokersim.model.Player
 import com.phinespec.pokersim.model.PlayingCard
 import com.phinespec.pokersim.utils.AlertType
+import com.phinespec.pokersim.utils.Bonus
 import com.phinespec.pokersim.utils.HandValue
 import com.phinespec.pokersim.utils.Street
 import com.phinespec.pokersim.utils.UIEvent
@@ -302,6 +303,9 @@ class MainViewModel @Inject constructor(
         Timber.d("$seconds seconds added!!")
         _seconds.value += seconds
         updateTimer()
+        _uiState.value = _uiState.value.copy(
+            bonus = Bonus.Time(seconds)
+        )
     }
 
     private fun gameOver() {
@@ -331,9 +335,9 @@ class MainViewModel @Inject constructor(
     companion object {
         private const val MAX_PLAYER_COUNT = 6
         private const val MAX_COMMUNITY_COUNT = 5
-        private const val STARTING_CASH = 50
-        private const val COUNTDOWN_START_TIME_SECONDS = 30
-        private const val COUNTDOWN_START_TIME_LONG = 30_000L
+        private const val STARTING_CASH = 100
+        private const val COUNTDOWN_START_TIME_SECONDS = 60
+        private const val COUNTDOWN_START_TIME_LONG = 60_000L
         private const val COUNTDOWN_INTERVAL = 1000L // one second
 
         private val handStrengthMapToString = mapOf(

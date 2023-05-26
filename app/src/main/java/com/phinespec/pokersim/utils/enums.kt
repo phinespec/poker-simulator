@@ -1,5 +1,7 @@
 package com.phinespec.pokersim.utils
 
+import androidx.compose.ui.input.key.Key.Companion.Back
+
 enum class Street {
     PREFLOP,
     FLOP,
@@ -22,6 +24,11 @@ enum class HandValue(val multiplier: Int = 1) {
     override fun toString(): String {
         return this.name.lowercase()
     }
+}
+
+sealed class Bonus() {
+    data class Time(var seconds: Int) : Bonus()
+    data class Cash(var amount: Int) : Bonus()
 }
 
 enum class CardFace(val angle: Float) {

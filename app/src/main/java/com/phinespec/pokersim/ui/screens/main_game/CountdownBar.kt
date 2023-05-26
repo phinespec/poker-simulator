@@ -22,7 +22,7 @@ fun CountdownBar(
     seconds: Int,
     modifier: Modifier = Modifier,
 ) {
-    val twentySecondsMillis = 1 * 30 * 1000
+    val twentySecondsMillis = 1 * 60 * 1000
     val millisUntilFinished = seconds * 1000
     val finishedSeconds = twentySecondsMillis - millisUntilFinished
     val totalProgress = ((finishedSeconds.toFloat() / twentySecondsMillis.toFloat()))
