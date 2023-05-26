@@ -268,8 +268,9 @@ class MainViewModel @Inject constructor(
     private fun checkIfDidWin(winningHand: String?) {
         _uiState.value.currentBet?.let { bet ->
             if (_uiState.value.winningPlayerIds.contains(bet.playerId)) {
+                val multiplier = handStrengthMapToHandValue[winningHand]?.multiplier ?: 1
                 addCash(getPayoutAmount(bet.amount, winningHand))
-                addTime(10)
+                addTime(BASE_TIME_BONUS * multiplier)
             } else {
                 subCash(getPayoutAmount(bet.amount, winningHand))
             }
@@ -336,6 +337,7 @@ class MainViewModel @Inject constructor(
         private const val MAX_PLAYER_COUNT = 6
         private const val MAX_COMMUNITY_COUNT = 5
         private const val STARTING_CASH = 100
+        private const val BASE_TIME_BONUS = 10
         private const val COUNTDOWN_START_TIME_SECONDS = 60
         private const val COUNTDOWN_START_TIME_LONG = 60_000L
         private const val COUNTDOWN_INTERVAL = 1000L // one second
