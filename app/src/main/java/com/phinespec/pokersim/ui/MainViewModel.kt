@@ -55,7 +55,8 @@ class MainViewModel @Inject constructor(
                 when (event.street) {
                     Street.PREFLOP -> drawFlop()
                     Street.FLOP -> drawTurn()
-                    else -> drawRiver()
+                    Street.TURN -> drawRiver()
+                    else -> {}
                 }
             }
             is UIEvent.ResetGame -> resetGame(event.isHard)

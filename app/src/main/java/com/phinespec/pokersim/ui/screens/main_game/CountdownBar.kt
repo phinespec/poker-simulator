@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.phinespec.pokersim.ui.theme.ProgressBarExtra
 import com.phinespec.pokersim.ui.theme.ProgressBarGreen
 import com.phinespec.pokersim.ui.theme.ProgressBarOrange
 import com.phinespec.pokersim.ui.theme.ProgressBarRed
@@ -39,7 +40,8 @@ fun CountdownBar(
         CircularProgressIndicator(
             progress = progressAnimation,
             color = when {
-                totalProgress < .45f -> ProgressBarGreen
+                totalProgress < 0 -> ProgressBarExtra
+                totalProgress >= 0 && totalProgress <= .45f -> ProgressBarGreen
                 totalProgress >= .45f && totalProgress <= .75f -> ProgressBarYellow
                 totalProgress >= .75f && totalProgress <= .95f -> ProgressBarOrange
                 else -> ProgressBarRed
