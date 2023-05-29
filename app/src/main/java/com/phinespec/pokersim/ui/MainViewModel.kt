@@ -39,9 +39,6 @@ class MainViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
-    private val _isTimerRunning = MutableLiveData(false)
-    val isTimerRunning: LiveData<Boolean> = _isTimerRunning
-
     private val _seconds = MutableStateFlow(COUNTDOWN_START_TIME_SECONDS)
     val seconds: StateFlow<Int> = _seconds.asStateFlow()
 
@@ -119,7 +116,6 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val response = getHandResults(cc, pc)
-            val handStrengths = mutableListOf<String>()
             val winningHands = mutableListOf<String>()
 
             withContext(Dispatchers.Main) {
@@ -129,7 +125,6 @@ class MainViewModel @Inject constructor(
                     players[i] = players[i].copy(
                         handStrength = handStrength
                     )
-//                    handStrengths.add(handStrength)
                 }
 
                 response?.winners?.forEach { winner ->
@@ -169,18 +164,18 @@ class MainViewModel @Inject constructor(
         }
     }
 
-        fun drawRiver() {
-            var cardsToAdd = uiState.value.communityCards
+    fun drawRiver() {
+        var cardsToAdd = uiState.value.communityCards
 
-            if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
-                cardsToAdd.add(mainDeck.removeFirst())
+        if (cardsToAdd.size < MAX_COMMUNITY_COUNT) {
+            cardsToAdd.add(mainDeck.removeFirst())
 
-                _uiState.value = _uiState.value.copy(
-                    street = Street.RIVER,
-                    communityCards = cardsToAdd,
-                    drawCardButtonLabel = "Next",
-                )
-                checkIfDidWin(_uiState.value.players[_uiState.value.winningPlayerIds.first()].handStrength)
+            _uiState.value = _uiState.value.copy(
+                street = Street.RIVER,
+                communityCards = cardsToAdd,
+                drawCardButtonLabel = "Next",
+            )
+            checkIfDidWin(_uiState.value.players[_uiState.value.winningPlayerIds.first()].handStrength)
         }
     }
 
