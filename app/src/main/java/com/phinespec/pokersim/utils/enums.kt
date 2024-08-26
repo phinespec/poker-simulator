@@ -54,4 +54,9 @@ sealed class UIEvent {
     data class Draw(val street: Street) : UIEvent()
     data class ResetGame(val isHard: Boolean = false) : UIEvent()
     data class PlaceBet(val playerId: Int) : UIEvent()
+    data class UpdateTimer(val timerEvent: TimerEvent) : UIEvent()
+
+    enum class TimerEvent {
+        START, STOP, DESTROY
+    }
 }

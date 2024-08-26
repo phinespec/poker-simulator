@@ -99,6 +99,7 @@ fun MainGameScreen(
 
         // Show alerts
         if (gameUiState.alert != null) {
+            viewModel.onEvent(UIEvent.UpdateTimer(UIEvent.TimerEvent.STOP))
             gameUiState.alert?.let { alertWrapper ->
                 AlertDialog(
                     shape = MaterialTheme.shapes.large,

@@ -58,6 +58,14 @@ class MainViewModel @Inject constructor(
             }
             is UIEvent.ResetGame -> resetGame(event.isHard)
             is UIEvent.PlaceBet -> placeBet(event.playerId)
+            is UIEvent.UpdateTimer -> {
+                when (event.timerEvent)
+                 {
+                    UIEvent.TimerEvent.START -> updateTimer()
+                    UIEvent.TimerEvent.STOP -> stopTimer()
+                    UIEvent.TimerEvent.DESTROY -> timer?.cancel()
+                }
+            }
         }
     }
 
@@ -177,6 +185,7 @@ class MainViewModel @Inject constructor(
             )
             checkIfDidWin(_uiState.value.players[_uiState.value.winningPlayerIds.first()].handStrength)
         }
+        stopTimer()
     }
 
     /**
